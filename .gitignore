@@ -1,0 +1,11 @@
+cache/
+logs/
+work/
+results/
+.nextflow/
+.nextflow.log*
+
+PIPELINE.md
+README.md
+
+bin/*.sif
