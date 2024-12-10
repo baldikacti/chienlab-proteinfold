@@ -23,46 +23,19 @@ APPTAINER_CACHEDIR=/work/pi_pchien_umass_edu/berent/.apptainer/cache  # Path to 
 cd $WORKDIR || exit
 
 # DO NOT CHANGE THESE VARIABLES
-SAMPLE_SHEET=$RESULTDIR/samplesheet.csv
-FASTA_DIR=$RESULTDIR/fasta
 WORK_BIN=$WORKDIR/bin
 R_CONTAINER=$WORK_BIN/chienlab_colabfold_4.4.sif
-COLABFOLD_CACHE=$WORKDIR/cache
 
 export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-## Download fasta files from uniprotIDs and generate bait:pair fasta files
-
-if [ ! -f "$R_CONTAINER" ]; then
-  echo "Pulling container baldikacti/chienlab_colabfold:4.4"
-  apptainer pull --dir "$WORK_BIN" docker://baldikacti/chienlab_colabfold:4.4
-fi
-
-if [ ! -d "$FASTA_DIR" ] || [ ! -f "$SAMPLE_SHEET" ]; then
-  $R_CONTAINER Rscript "$WORK_BIN"/combine_fasta.R \
-    --acc_file "$ACC_FILE" \
-    --fasta_dir "$FASTA_DIR" \
-    --samplesheet "$SAMPLE_SHEET"
-fi
-
-if [ ! -d "$COLABFOLD_CACHE" ]; then
-    mkdir -p $COLABFOLD_CACHE && cd $COLABFOLD_CACHE
-    wget https://storage.googleapis.com/alphafold/alphafold_params_colab_2022-12-06.tar
-    tar -xavf alphafold_params_colab_2022-12-06.tar
-    rm alphafold_params_colab_2022-12-06.tar
-    cd $WORKDIR
-fi
-
-
 ## Run ColabFold using nf-core/proteinfold pipeline ####
 
 nextflow run main.nf \
-      --input "$SAMPLE_SHEET" \
+      --input "$ACC_FILE" \
       --outdir "$RESULTDIR" \
       --mode colabfold \
-      --colabfold_cache "$COLABFOLD_CACHE" \
       --num_recycles_colabfold 3 \
       --colabfold_model_preset "alphafold2_multimer_v3" \
       -c conf/unity.config \
@@ -70,4 +43,4 @@ nextflow run main.nf \
       -resume
 
 # Sumamarise and export ranked results to csv file
-$R_CONTAINER Rscript "$WORK_BIN"/rank_pairs.R "$RESULTDIR" "$CCNAREF" "$UNIPROT_MAP"
+# $R_CONTAINER Rscript "$WORK_BIN"/rank_pairs.R "$RESULTDIR" "$CCNAREF" "$UNIPROT_MAP"

@@ -1,3 +1,4 @@
+#!/usr/bin/env Rscript
 options(readr.show_col_types=FALSE)
 library(yyjsonr) # Fast json parser
 library(dplyr)

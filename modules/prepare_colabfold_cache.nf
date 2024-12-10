@@ -1,14 +1,15 @@
 process PREPARE_COLABFOLD_CACHE {
     label "process_single"
 
-    container "ghcr.io/sokrypton/colabfold:1.5.5-cuda12.2.2"
+    container "docker://baldikacti/chienlab_proteinfold_ubuntu:noble"
 
     output:
-    path ("cache/*")         , emit: cache
+    path ("*")         , emit: cache
 
     script:
     """
-    mkdir ./cache
-    python -m colabfold.download
+    wget --no-check-certificate https://storage.googleapis.com/alphafold/alphafold_params_colab_2022-12-06.tar
+    tar -xavf alphafold_params_colab_2022-12-06.tar
+    rm alphafold_params_colab_2022-12-06.tar
     """
 }
