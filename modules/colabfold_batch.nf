@@ -18,6 +18,7 @@ process COLABFOLD_BATCH {
 
     output:
     path ("*")         , emit: pdb
+    path ("*.json")    , emit: json
     path ("*.png")     , emit: multiqc
 
     script:

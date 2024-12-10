@@ -7,6 +7,7 @@
 include { COLABFOLD_BATCH        } from '../modules/colabfold_batch'
 include { PREPARE_COLABFOLD_CACHE} from '../modules/prepare_colabfold_cache'
 include { PREPROCESS_FASTA_PAIRS } from '../modules/preprocess_fasta_pairs'
+include { RANK_IPTM              } from '../modules/rank_iptm'
 
 
 workflow COLABFOLD {
@@ -35,4 +36,6 @@ workflow COLABFOLD {
             PREPARE_COLABFOLD_CACHE.out.cache,
             num_recycles_colabfold
         )
+
+    RANK_IPTM(COLABFOLD_BATCH.out.json.collect())
 }

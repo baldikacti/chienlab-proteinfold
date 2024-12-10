@@ -15,17 +15,12 @@ module load nextflow/24.04.3 apptainer/latest
 # CHANGE THE PATHS BELOW
 WORKDIR=/work/pi_pchien_umass_edu/berent/chienlab-proteinfold         # Path to pipeline location (Should be under a fast filesystem like '/work' or '/scratch')
 RESULTDIR=$WORKDIR/results/tests                                      # Path to results
-ACC_FILE=$WORKDIR/tests/acclist.csv                                   # Path to bait:prey csv file
-CCNAREF=$WORKDIR/references/CCNA_ref.csv                              # Path to gene reference csv file
-UNIPROT_MAP=$WORKDIR/references/cc_uniprot_mappings.csv               # Path to UniprotID:GeneID mapping csv file
+ACC_FILE=$WORKDIR/tests/acclist.tsv                                   # Path to bait:prey csv file
 APPTAINER_CACHEDIR=/work/pi_pchien_umass_edu/berent/.apptainer/cache  # Path to cache directory for apptainer cache
 
 cd $WORKDIR || exit
 
 # DO NOT CHANGE THESE VARIABLES
-WORK_BIN=$WORKDIR/bin
-R_CONTAINER=$WORK_BIN/chienlab_colabfold_4.4.sif
-
 export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
@@ -38,9 +33,5 @@ nextflow run main.nf \
       --mode colabfold \
       --num_recycles_colabfold 3 \
       --colabfold_model_preset "alphafold2_multimer_v3" \
-      -c conf/unity.config \
-      -profile unity \
+      -profile unity,debug \
       -resume
-
-# Sumamarise and export ranked results to csv file
-# $R_CONTAINER Rscript "$WORK_BIN"/rank_pairs.R "$RESULTDIR" "$CCNAREF" "$UNIPROT_MAP"

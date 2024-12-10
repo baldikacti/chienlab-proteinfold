@@ -6,10 +6,6 @@ option_list <- list(
   make_option(c("--acc_file"),
               type = "character", default = NULL,
               help = "Path to csv file with accession numbers.\n Headers: geneID, bait"
-  ),
-  make_option(c("--samplesheet"),
-              type = "character", default = NULL,
-              help = "CSV file to export processed accession file."
   )
 )
 
@@ -46,7 +42,7 @@ getFasta <- function(base_url, outfile) {
   }
 }
 
-acclist <- read.csv(opt$acc_file, header = T)
+acclist <- read.table(opt$acc_file, header = T, sep = "\t")
 query_url <- sprintf("https://rest.uniprot.org/uniprotkb/%s.fasta", acclist[[1]])
 
 getFasta(query_url, outfile = "query")
@@ -54,7 +50,7 @@ getFasta(query_url, outfile = "query")
 # Reads the fasta file and creates combinations of proteins
 fasta <- read.fasta("query.fasta", seqtype = "AA", as.string = TRUE, set.attributes = FALSE) |>
   setNames(acclist[[1]])
-combs <- expand.grid(acclist[acclist[[2]] == TRUE, "geneID"], acclist[acclist[[2]] == FALSE, 1], stringsAsFactors = FALSE)
+combs <- expand.grid(acclist[acclist[[2]] == TRUE, 1], acclist[acclist[[2]] == FALSE, 1], stringsAsFactors = FALSE)
 combs$combined <- paste(combs$Var1, combs$Var2, sep = "-")
 fast_out <- mapply(\(x,y) {paste(fasta[[x]], fasta[[y]], sep = ":")}, combs$Var1, combs$Var2, SIMPLIFY = FALSE) |>
   setNames(combs$combined)

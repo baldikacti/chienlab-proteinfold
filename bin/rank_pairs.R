@@ -7,21 +7,15 @@ library(readr)
 
 
 args <- commandArgs(trailingOnly = TRUE)
-# args <- c("results/cc_lotp_pairs", "references/CCNA_ref.csv", "references/cc_uniprot_mappings.csv")
-
-result_root <- args[1]
-ranked_result_dir <- file.path(result_root, "ranked_results")
-if (!dir.exists(ranked_result_dir))
-  dir.create(ranked_result_dir, recursive = TRUE)
+# args <- c("tests/uniprotkb_proteome_UP000001364_cc.tsv")
 
 # Read reference files
-ccna_ref <- read_csv(as.character(args[2]))
-uniprot_ref <- read_csv(as.character(args[3]))
+ref_file <- read_tsv(as.character(args[1]))
 
 # List rank_001 json file names with full paths
 json_ls <- list.files(
-  path = file.path(result_root, "colabfold/webserver"),
-  pattern = ".*rank_001.*json",
+  path = ".",
+  pattern = ".*scores_rank_001.*json",
   full.names = TRUE
 )
 # Collect iptm values from all json files in a numeric vector
@@ -33,9 +27,7 @@ iptm_vals <- vapply(json_ls,
 # Regular expression to capture the components of the json files names
 pattern <- "^([A-Z0-9-]+)_scores_(rank_\\d{3})_(.*)_(model_\\d{1})_(seed_\\d{3})\\.json$"
 # Apply the regex to extract the components
-matches <- regmatches(basename(json_ls), regexec(pattern, basename(json_ls)))
-# Combine json file name components in a data.frame
-matches <- matches |>
+matches <- regmatches(basename(json_ls), regexec(pattern, basename(json_ls))) |>
   do.call(rbind, args = _) |>
   as.data.frame() |>
   setNames(c(
@@ -45,9 +37,7 @@ matches <- matches |>
     "model_type",
     "modelID",
     "seedID"
-  ))
-
-matches <- matches |>
+  )) |>
   mutate(iptm = iptm_vals) |>
   summarise(iptm = mean(iptm),
             .by = c(paired_uniprotID, rank, model_type)) |> # Averages iptm values if there are more than 1 rank1 json file
@@ -55,14 +45,11 @@ matches <- matches |>
                        delim = "-",
                        names = c("id1", "id2"),
                        cols_remove = FALSE) |>
-  left_join(uniprot_ref, by = join_by(id2 == uniprotID)) |>
-  rename(prey_locus_tag = locus_tag) |>
-  left_join(uniprot_ref, by = join_by(id1 == uniprotID)) |>
-  rename(bait_locus_tag = locus_tag) |>
+  left_join(ref_file, by = join_by(id2 == Entry)) |>
+  left_join(ref_file, by = join_by(id1 == Entry),
+            suffix = c("_prey", "_bait")) |>
   select(-id1, -id2) |>
-  left_join(ccna_ref, by = join_by(prey_locus_tag == locus_tag)) |>
-  arrange(desc(iptm)) |>
-  relocate(all_of(c("bait_locus_tag", "prey_locus_tag", "paired_uniprotID", "rank", "model_type", "iptm")))
+  arrange(desc(iptm))
 
 # Export results to csv
-write_csv(matches, file.path(ranked_result_dir, "ranked_results.csv"))
+write_tsv(matches, "ranked_results.tsv")
