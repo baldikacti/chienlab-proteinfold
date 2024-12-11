@@ -8,6 +8,7 @@ include { COLABFOLD_BATCH        } from '../modules/colabfold_batch'
 include { PREPARE_COLABFOLD_CACHE} from '../modules/prepare_colabfold_cache'
 include { PREPROCESS_FASTA_PAIRS } from '../modules/preprocess_fasta_pairs'
 include { RANK_IPTM              } from '../modules/rank_iptm'
+//include { COLAB_REPORT           } from '../modules/colabfold_report/main'
 
 
 workflow COLABFOLD {
@@ -15,6 +16,7 @@ workflow COLABFOLD {
     accession_file
     colabfold_model_preset
     num_recycles_colabfold
+    organism_ref
 
     main:
     //
@@ -37,5 +39,13 @@ workflow COLABFOLD {
             num_recycles_colabfold
         )
 
-    RANK_IPTM(COLABFOLD_BATCH.out.json.collect())
+    RANK_IPTM(
+      COLABFOLD_BATCH.out.json.collect(),
+      organism_ref
+      )
+
+    //COLAB_REPORT(
+    //    params.colabfold_notebook,
+    //    COLABFOLD_BATCH.out.multiqc.collect()
+    //)
 }

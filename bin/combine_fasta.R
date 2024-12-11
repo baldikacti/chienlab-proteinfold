@@ -5,7 +5,7 @@ library(seqinr)
 option_list <- list(
   make_option(c("--acc_file"),
               type = "character", default = NULL,
-              help = "Path to csv file with accession numbers.\n Headers: geneID, bait"
+              help = "Path to tsv file with accession numbers.\n Headers: geneID, bait"
   )
 )
 
@@ -18,17 +18,17 @@ getFasta <- function(base_url, outfile) {
     total = length(base_url),
     clear = FALSE, width = 60
   )
-  for (i in seq_along(base_url)) {
+  for (url in base_url) {
     tryCatch(
       {
-        request(base_url[i]) |>
+        request(url) |>
           req_perform() |>
           resp_body_string() |>
           write.table(
             file = paste0(outfile, ".fasta"),
             quote = F, row.names = F, col.names = F, append = T
           )
-        message(paste0("Downloaded: ", basename(base_url), "\n"))
+        message(paste0("Downloaded: ", basename(url), "\n"))
       },
       error = function(e) {
         message(paste("Encountered error processing:", base_url[i]))
@@ -37,7 +37,7 @@ getFasta <- function(base_url, outfile) {
       }
     )
 
-    Sys.sleep(1)
+    Sys.sleep(0.1) # To not spam uniprot
     pb$tick()
   }
 }
