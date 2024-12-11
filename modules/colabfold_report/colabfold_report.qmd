@@ -1,0 +1,47 @@
+---
+format: 
+  html:
+    embed-resources: true
+    toc: true
+    toc-location: left
+    
+execute:
+  echo: false
+---
+
+```{r}
+library(glue)
+library(purrr)
+library(stringr)
+
+pngs <- dir(".", ".png")
+
+df <- data.frame(
+  pngs_base = pngs,
+  sections = str_split_i(pngs, "_", 1)
+)
+
+```
+
+```{r}
+#| output: asis
+
+ls <- split(df, df$sections) |>
+  map(1)
+
+for (header in names(ls)) {
+  glue('
+  
+  # {header}
+  
+  ![]({ ls[[header]][1] })
+  ![]({ ls[[header]][2] })
+  ![]({ ls[[header]][3] })
+  
+       ') |>
+    cat()
+}
+
+
+```
+

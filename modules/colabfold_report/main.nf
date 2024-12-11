@@ -1,22 +1,22 @@
-process RANK_IPTM {
+process COLAB_REPORT {
     label 'process_single'
     publishDir = [
                 path: { "${params.outdir}/ranked_results" },
                 mode: 'copy',
-                pattern: '*.tsv'
+                pattern: '*.html'
             ]
 
     container "docker://baldikacti/chienlab_proteinfold_rverse:4.4.2"
 
     input:
-    path json
-    path org_ref
+    path qmd
+    path pngs
 
     output:
-    path ("*.tsv") , emit: tsv
+    path ("colabfold_report.html")
 
     script:
     """
-    rank_pairs.R ${org_ref}
+    quarto render ${qmd}
     """
 }

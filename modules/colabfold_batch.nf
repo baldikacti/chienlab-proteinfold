@@ -17,9 +17,9 @@ process COLABFOLD_BATCH {
     val  numRec
 
     output:
-    path ("*")         , emit: pdb
-    path ("*.json")    , emit: json
-    path ("*.png")     , emit: multiqc
+    path ("*")                  , emit: pdb
+    path ("*scores_rank*.json") , emit: json
+    path ("*.png")              , emit: multiqc
 
     script:
     fastaID = fasta.getSimpleName()

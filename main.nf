@@ -24,7 +24,8 @@ workflow {
     COLABFOLD (
         params.input,
         params.colabfold_model_preset,
-        params.num_recycles_colabfold
+        params.num_recycles_colabfold,
+        params.org_ref
     )
 
 }
