@@ -36,15 +36,17 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 
 **Legend**:
 
-**APPTAINER_CACHEDIR** = Sets the path to where `apptainer` will cache the containers used in the pipeline.
+**APPTAINER_CACHEDIR** = Sets the path to where `apptainer` will cache the containers used in the pipeline. [`/path/to/.apptainer/cache`]
 
-**input** = Path to `tsv` file which has the uniprot IDs and `bait` status.
+**input** = Path to `tsv` file which has the uniprot IDs and `bait` status. [`/path/to/input.tsv`]
 
-**output** = Path to result directory.
+**output** = Path to result directory. [`/path/to/results`]
 
-**org_ref** = Path to the `tsv` file downloaded from Uniprot.
+**org_ref** = Path to the `tsv` file downloaded from Uniprot. [`/path/to/uniprot_organism_reference.tsv`]
 
-**num_recycles_colabfold** = Number of recycles to use in Colabfold. Higher the number better the prediction, but the slower the pipeline.
+**mode** = Sets the prediction mode. Currently only supports `colabfold`, but `alphafold3` will be added soon. [`colabfold`]
+
+**num_recycles_colabfold** = Number of recycles to use in Colabfold. Higher the number better the prediction, but the slower the pipeline. [integer]
 
 **resume** = Enables the pipeline to be used repeatedly. The pipeline will only run incomplete processes when rerun with the same inputs. 
 
@@ -68,10 +70,47 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.1.0 \
-      --input /path/to/acclist.tsv \
-      --outdir /path/to/results \
-      --org_ref /path/to/organism_reference.tsv \
+nextflow run baldikacti/chienlab-proteinfold -r v0.2.0 \
+      --input /path/to/acclist.tsv \                       # Path to bait:prey tsv file
+      --outdir /path/to/results \                          # Path to output directory
+      --org_ref /path/to/organism_reference.tsv \          # Path to organism reference tsv file from uniprot
+      --mode colabfold \                                   # [colabfold]
+      --num_recycles_colabfold 5 \                         # Number of recycles [int]
+      --colabfold_model_preset "alphafold2_multimer_v3" \  # [auto,alphafold2_ptm,alphafold2_multimer_v3]
+      -profile unity \
+      -resume
+```
+
+4. Submit to slurm with `sbatch main.sh`
+
+# Example
+
+Below example uses the bait:prey file `acclist.tsv` and the Caulobacter crescentus proteome reference file `uniprotkb_proteome_UP000001364_cc.tsv`. Both are under a directory called `tests` in this repository.
+
+**main.sh**
+```bash
+#!/usr/bin/bash
+#SBATCH --job-name=chienlab-proteinfold     # Job name
+#SBATCH --partition=cpu                     # Partition (queue) name
+#SBATCH -c 2                                # Number of CPUs
+#SBATCH --nodes=1                           # Number of nodes
+#SBATCH --mem=10gb                          # Job memory request
+#SBATCH --time=14-00:00:00                  # Time limit days-hrs:min:sec
+#SBATCH -q long
+#SBATCH --output=logs/chienlab-proteinfold_%j.log
+
+module load nextflow/24.04.3 apptainer/latest
+
+APPTAINER_CACHEDIR=/work/pi_pchien_umass_edu/berent/.apptainer/cache  # Path to cache directory for apptainer cache
+
+export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
+export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
+export NXF_OPTS="-Xms1G -Xmx8G"
+
+nextflow run baldikacti/chienlab-proteinfold -r v0.2.0 \
+      --input ./tests/acclist.tsv \
+      --outdir ./results \
+      --org_ref ./tests/uniprotkb_proteome_UP000001364_cc.tsv \
       --mode colabfold \
       --num_recycles_colabfold 5 \
       --colabfold_model_preset "alphafold2_multimer_v3" \
@@ -79,4 +118,4 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.1.0 \
       -resume
 ```
 
-4. Submit to slurm with `sbatch main.sh`
+Submit with `sbatch main.sh`.

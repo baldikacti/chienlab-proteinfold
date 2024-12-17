@@ -13,7 +13,7 @@ process COLABFOLD_BATCH {
     input:
     path fasta
     val  cb_model
-    path cb_cache
+    path ("params/*")
     val  numRec
 
     output:
