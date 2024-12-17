@@ -36,13 +36,13 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 
 **Legend**:
 
-**APPTAINER_CACHEDIR** = Sets the path to where `apptainer` will cache the containers used in the pipeline. [`/path/to/.apptainer/cache`]
+**APPTAINER_CACHEDIR** = Absolute path to where `apptainer` will cache the containers used in the pipeline. [`/path/to/.apptainer/cache`]
 
-**input** = Path to `tsv` file which has the uniprot IDs and `bait` status. [`/path/to/input.tsv`]
+**input** = Absolute path to `tsv` file which has the uniprot IDs and `bait` status. [`/path/to/input.tsv`]
 
-**output** = Path to result directory. [`/path/to/results`]
+**output** = Absolute path to result directory. [`/path/to/results`]
 
-**org_ref** = Path to the `tsv` file downloaded from Uniprot. [`/path/to/uniprot_organism_reference.tsv`]
+**org_ref** = Absolute path to the `tsv` file downloaded from Uniprot. [`/path/to/uniprot_organism_reference.tsv`]
 
 **mode** = Sets the prediction mode. Currently only supports `colabfold`, but `alphafold3` will be added soon. [`colabfold`]
 
@@ -87,6 +87,8 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.2.0 \
 
 Below example uses the bait:prey file `acclist.tsv` and the Caulobacter crescentus proteome reference file `uniprotkb_proteome_UP000001364_cc.tsv`. Both are under a directory called `tests` in this repository.
 
+In this example the `tests` directory is under `/work/pi_pchien_umass_edu/berent/chienlab-proteinfold`. Remember absolute paths starts with a trailing `/`.
+
 **main.sh**
 ```bash
 #!/usr/bin/bash
@@ -108,9 +110,9 @@ export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
 nextflow run baldikacti/chienlab-proteinfold -r v0.2.0 \
-      --input ./tests/acclist.tsv \
-      --outdir ./results \
-      --org_ref ./tests/uniprotkb_proteome_UP000001364_cc.tsv \
+      --input /work/pi_pchien_umass_edu/berent/chienlab-proteinfold/tests/acclist.tsv \
+      --outdir /work/pi_pchien_umass_edu/berent/chienlab-proteinfold/results \
+      --org_ref /work/pi_pchien_umass_edu/berent/chienlab-proteinfold/tests/uniprotkb_proteome_UP000001364_cc.tsv \
       --mode colabfold \
       --num_recycles_colabfold 5 \
       --colabfold_model_preset "alphafold2_multimer_v3" \
