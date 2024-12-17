@@ -35,11 +35,17 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 3. Example submission script below.
 
 **Legend**:
+
 **APPTAINER_CACHEDIR** = Sets the path to where `apptainer` will cache the containers used in the pipeline.
+
 **input** = Path to `tsv` file which has the uniprot IDs and `bait` status.
+
 **output** = Path to result directory.
+
 **org_ref** = Path to the `tsv` file downloaded from Uniprot.
+
 **num_recycles_colabfold** = Number of recycles to use in Colabfold. Higher the number better the prediction, but the slower the pipeline.
+
 **resume** = Enables the pipeline to be used repeatedly. The pipeline will only run incomplete processes when rerun with the same inputs. 
 
 **main.sh**
@@ -62,7 +68,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold \
+nextflow run baldikacti/chienlab-proteinfold -r v0.1.0 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --org_ref /path/to/organism_reference.tsv \
