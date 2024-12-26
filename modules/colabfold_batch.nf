@@ -1,9 +1,9 @@
 process COLABFOLD_BATCH {
-    tag "$fastaID"
+    tag "$accID"
     label 'process_medium'
     label "gpu"
     publishDir = [
-                path: { "${params.outdir}/${params.mode}/$fastaID" },
+                path: { "${params.outdir}/${params.mode}/$outDir/$accID" },
                 mode: 'copy',
                 pattern: '*.*'
             ]
@@ -11,19 +11,18 @@ process COLABFOLD_BATCH {
     container "docker://ghcr.io/sokrypton/colabfold:1.5.5-cuda12.2.2"
 
     input:
-    path fasta
+    tuple val(accID), path(fasta)
     val  cb_model
     path ("params/*")
     val  numRec
+    val  outDir
 
     output:
     path ("*")                  , emit: pdb
     path ("*scores_rank*.json") , emit: json
     path ("*.png")              , emit: multiqc
 
-    script:
-    fastaID = fasta.getSimpleName()
-    
+    script:    
     """
     colabfold_batch \\
         ${fasta} \\

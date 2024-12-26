@@ -34,21 +34,27 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 
 3. Example submission script below.
 
-**Legend**:
+**Mandatory arguments:**
 
-**APPTAINER_CACHEDIR** = Absolute path to where `apptainer` will cache the containers used in the pipeline. [`/path/to/.apptainer/cache`]
+- **input** = Absolute path to `tsv` file which has the uniprot IDs and `bait` status. [`/path/to/input.tsv`]
 
-**input** = Absolute path to `tsv` file which has the uniprot IDs and `bait` status. [`/path/to/input.tsv`]
+- **output** = Absolute path to result directory. [`/path/to/results`]
 
-**output** = Absolute path to result directory. [`/path/to/results`]
+- **org_ref** = Absolute path to the `tsv` file downloaded from Uniprot. [`/path/to/uniprot_organism_reference.tsv`]
 
-**org_ref** = Absolute path to the `tsv` file downloaded from Uniprot. [`/path/to/uniprot_organism_reference.tsv`]
+- **mode** = Sets the prediction mode. Currently only supports `colabfold`, but `alphafold3` will be added soon. [`colabfold`]
 
-**mode** = Sets the prediction mode. Currently only supports `colabfold`, but `alphafold3` will be added soon. [`colabfold`]
+- **num_recycles_colabfold** = Number of recycles to use in Colabfold. Higher the number better the prediction, but the slower the pipeline. [integer]
 
-**num_recycles_colabfold** = Number of recycles to use in Colabfold. Higher the number better the prediction, but the slower the pipeline. [integer]
 
-**resume** = Enables the pipeline to be used repeatedly. The pipeline will only run incomplete processes when rerun with the same inputs. 
+**Optional arguments:**
+
+- **top_rank** = Number of top ranked (by `ipTM`) `bait:pair` predictions to pick for rerunning with 20 recycles for better prediction quality. [integer]
+
+- **APPTAINER_CACHEDIR** = Absolute path to where `apptainer` will cache the containers used in the pipeline. [`/path/to/.apptainer/cache`]
+
+- **resume** = Enables the pipeline to be used repeatedly. The pipeline will only run incomplete processes when rerun with the same inputs. 
+
 
 **main.sh**
 ```bash
@@ -70,18 +76,73 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.2.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.3.0 \
       --input /path/to/acclist.tsv \                       # Path to bait:prey tsv file
       --outdir /path/to/results \                          # Path to output directory
       --org_ref /path/to/organism_reference.tsv \          # Path to organism reference tsv file from uniprot
       --mode colabfold \                                   # [colabfold]
       --num_recycles_colabfold 5 \                         # Number of recycles [int]
+      --top_rank 2 \                                       # Number of top ranked pairs to pick [int]
       --colabfold_model_preset "alphafold2_multimer_v3" \  # [auto,alphafold2_ptm,alphafold2_multimer_v3]
       -profile unity \
       -resume
 ```
 
 4. Submit to slurm with `sbatch main.sh`
+
+# Results
+
+## Directory Structure
+
+Example results output directory structure can be found below. 
+
+**Legend**
+
+- *colabfold*: Contains the `ColabFold` prediction results for each `bait:prey` pair.
+
+- *screen*: Contains the prediction pairs based on the initial screen using the recycle count from `num_recycles_colabfold` paramater
+
+- *toprank*: Contains the prediction pairs from top ranked pairs based on `ipTM` score with 20 recycles. `top_rank` flag sets how many pairs should be rerun with 20 recycles.
+
+- *fasta*: Contains all `bait:prey` combined FASTA files.
+
+- *pipeline_info*: Contains pipeline execution summaries
+
+- *ranked_results*: Contains the `ranked_results.tsv` file that contains ranked (by `ipTM`) `bait:prey` predictions and optional protein information.
+
+```bash
+<outdir>
+├── colabfold
+│   ├── screen
+│   │   ├── # Directories for each bait:prey pair with ColabFold results
+│   │   ...
+│   └── toprank
+│       ├── # Directories for each bait:prey pair with ColabFold results from top ranked pairs
+│       ...
+├── fasta
+│   ├── # Paired FASTA files
+│   ...
+├── pipeline_info
+│   ├── # Execution summaries (html, txt)
+│   ...
+└── ranked_results
+    └── ranked_results.tsv
+```
+
+## Pipeline Summary
+
+When a run successfully finishes, the `.log` file (set by `#SBATCH --output=/path/to/mylog_%j.log`) will contain a short summary of total execution time, successful and failed jobs. (Check `pipeline_info` directory for detailed execution summaries.)
+
+The pipeline is set up in a way if a job fails, it is retried with higher resources up to two times and `ignored` on the 3 failed attempt. Due to this, if you see a number next to the `Ignored` section in the summary it means that that number of predictions completely failed to produce results. This is most likely due to the size limitation of `ColabFold`.
+
+```bash
+Completed at: <Date and time when the pipeline finished>
+Duration    : <Total execution duration>
+CPU hours   : <CPU hours>
+Succeeded   : <number of successfull jobs>
+Failed      : <number of failed jobs>
+Ignored     : <number of ignored jobs>
+```
 
 # Example
 
@@ -109,12 +170,13 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.2.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.3.0 \
       --input /work/pi_pchien_umass_edu/berent/chienlab-proteinfold/tests/acclist.tsv \
       --outdir /work/pi_pchien_umass_edu/berent/chienlab-proteinfold/results \
       --org_ref /work/pi_pchien_umass_edu/berent/chienlab-proteinfold/tests/uniprotkb_proteome_UP000001364_cc.tsv \
       --mode colabfold \
       --num_recycles_colabfold 5 \
+      --top_rank 2 \
       --colabfold_model_preset "alphafold2_multimer_v3" \
       -profile unity \
       -resume

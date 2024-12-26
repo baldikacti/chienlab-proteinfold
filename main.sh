@@ -16,12 +16,13 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.2.0 \
+nextflow run main.nf \
       --input /work/pi_pchien_umass_edu/berent/chienlab-proteinfold/tests/acclist.tsv \
       --outdir /work/pi_pchien_umass_edu/berent/chienlab-proteinfold/results \
       --org_ref /work/pi_pchien_umass_edu/berent/chienlab-proteinfold/tests/uniprotkb_proteome_UP000001364_cc.tsv \
       --mode colabfold \
       --num_recycles_colabfold 5 \
+      --top_rank 2 \
       --colabfold_model_preset "alphafold2_multimer_v3" \
       -profile unity \
       -resume
