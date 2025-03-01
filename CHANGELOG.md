@@ -1,3 +1,7 @@
+# Version v0.4.0
+
+- GPU resource request optimization for slurm. Now uses better defaults for more optimized performance.
+
 # Version v0.3.0
 
 - Adds a new paramater, `top_rank`, that reruns the top selected number of predictions with 20 recycles and exports them to a new folder called `toprank`.

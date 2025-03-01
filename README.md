@@ -76,7 +76,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.3.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.4.0 \
       --input /path/to/acclist.tsv \                       # Path to bait:prey tsv file
       --outdir /path/to/results \                          # Path to output directory
       --org_ref /path/to/organism_reference.tsv \          # Path to organism reference tsv file from uniprot

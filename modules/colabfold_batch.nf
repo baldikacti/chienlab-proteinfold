@@ -1,6 +1,5 @@
 process COLABFOLD_BATCH {
     tag "$accID"
-    label 'process_medium'
     label "gpu"
     publishDir = [
                 path: { "${params.outdir}/${params.mode}/$outDir/$accID" },
