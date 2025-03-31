@@ -10,6 +10,7 @@ include { PREPARE_COLABFOLD_CACHE               } from '../modules/prepare_colab
 include { PREPROCESS_FASTA_PAIRS                } from '../modules/preprocess_fasta_pairs'
 include { RANK_IPTM                             } from '../modules/rank_iptm'
 
+
 workflow COLABFOLD {
     take:
     accession_file
