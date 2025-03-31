@@ -16,6 +16,6 @@ process PREPROCESS_FASTA_PAIRS {
 
     script:
     """
-    combine_fasta.R --acc_file ${acc_file}
+    combine_fasta.R --acc_file ${acc_file} --proj_dir $projectDir
     """
 }

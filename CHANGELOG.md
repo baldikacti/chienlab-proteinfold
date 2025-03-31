@@ -1,3 +1,9 @@
+# Version v0.5.0
+
+- Custom fasta files can be used as bait.
+- Fixed a bug that prevented relative paths to fail.
+- Added new `-profile`'s for local execution. (Docker, Apptainer, Singularity)
+
 # Version v0.4.0
 
 - GPU resource request optimization for slurm. Now uses better defaults for more optimized performance.

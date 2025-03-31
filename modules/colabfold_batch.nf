@@ -21,7 +21,8 @@ process COLABFOLD_BATCH {
     path ("*scores_rank*.json") , emit: json
     path ("*.png")              , emit: multiqc
 
-    script:    
+    script:
+    def args = task.ext.args ?: ''
     """
     colabfold_batch \\
         ${fasta} \\
@@ -29,10 +30,8 @@ process COLABFOLD_BATCH {
         --num-recycle ${numRec} \\
         --msa-mode 'mmseqs2_uniref_env' \\
         --model-type ${cb_model} \\
-        --templates \\
-        --amber \\
-        --use-gpu-relax \\
         --data \$PWD \\
-        --host-url http://cfold-db:8888
+        --host-url http://cfold-db:8888 \\
+        $args
     """
 }

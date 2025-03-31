@@ -20,7 +20,7 @@ This pipeline is meant for the [Unity HPC](https://unity.rc.umass.edu/index.php)
     - Select **Compressed** = `No`
     - Optional: You can customize columns in the data by adding or substracting whatever you want. This will be automatically added the the `ranked_results` table at the end of the pipeline
 
-2. Create a new `tsv` file with `Entry` and `bait` columns as below. `Entry` column needs to be either the full list or a subset of the `Entry` column in the proteome `tsv` file downloaded in step 1. 
+2. Create a new `tsv` file with `Entry` and `bait` columns as below. `Entry` column can be either a UniprotID or a relative path to a `fasta` file. 
 
 Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated. 
 
@@ -32,15 +32,25 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 | Q9UNE7    | 0     |
 | Q02790    | 0     |
 
+**OR**
+
+**acclist.tsv**
+| Entry            | bait  |
+| :--------------: | :--:  |
+| ref/P41797.fasta | 1     |
+| P25685           | 0     |
+| Q9UNE7           | 0     |
+| Q02790           | 0     |
+
 3. Example submission script below.
 
 **Mandatory arguments:**
 
-- **input** = Absolute path to `tsv` file which has the uniprot IDs and `bait` status. [`/path/to/input.tsv`]
+- **input** = Path to `tsv` file which has the uniprot IDs and `bait` status. [`/path/to/input.tsv`]
 
-- **output** = Absolute path to result directory. [`/path/to/results`]
+- **output** = Path to result directory. [`/path/to/results`]
 
-- **org_ref** = Absolute path to the `tsv` file downloaded from Uniprot. [`/path/to/uniprot_organism_reference.tsv`]
+- **org_ref** = Path to the `tsv` file downloaded from Uniprot. [`/path/to/uniprot_organism_reference.tsv`]
 
 - **mode** = Sets the prediction mode. Currently only supports `colabfold`, but `alphafold3` will be added soon. [`colabfold`]
 
@@ -76,14 +86,14 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.4.0 \
-      --input /path/to/acclist.tsv \                       # Path to bait:prey tsv file
-      --outdir /path/to/results \                          # Path to output directory
-      --org_ref /path/to/organism_reference.tsv \          # Path to organism reference tsv file from uniprot
-      --mode colabfold \                                   # [colabfold]
-      --num_recycles_colabfold 5 \                         # Number of recycles [int]
-      --top_rank 2 \                                       # Number of top ranked pairs to pick [int]
-      --colabfold_model_preset "alphafold2_multimer_v3" \  # [auto,alphafold2_ptm,alphafold2_multimer_v3]
+nextflow run baldikacti/chienlab-proteinfold -r v0.5.0 \
+      --input /path/to/acclist.tsv \
+      --outdir /path/to/results \
+      --org_ref /path/to/organism_reference.tsv \
+      --mode colabfold \
+      --num_recycles_colabfold 5 \ 
+      --top_rank 2 \
+      --colabfold_model_preset "alphafold2_multimer_v3" \
       -profile unity \
       -resume
 ```
@@ -164,18 +174,18 @@ In this example the `tests` directory is under `/work/pi_pchien_umass_edu/berent
 
 module load nextflow/24.04.3 apptainer/latest
 
-APPTAINER_CACHEDIR=/work/pi_pchien_umass_edu/berent/.apptainer/cache  # Path to cache directory for apptainer cache
+APPTAINER_CACHEDIR=/path/to/.apptainer/cache  # Path to cache directory for apptainer cache
 
 export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
 nextflow run baldikacti/chienlab-proteinfold -r v0.3.0 \
-      --input /work/pi_pchien_umass_edu/berent/chienlab-proteinfold/tests/acclist.tsv \
-      --outdir /work/pi_pchien_umass_edu/berent/chienlab-proteinfold/results \
-      --org_ref /work/pi_pchien_umass_edu/berent/chienlab-proteinfold/tests/uniprotkb_proteome_UP000001364_cc.tsv \
+      --input tests/acclist.tsv \
+      --outdir results \
+      --org_ref tests/uniprotkb_proteome_UP000001364_cc.tsv \
       --mode colabfold \
-      --num_recycles_colabfold 5 \
+      --num_recycles_colabfold 3 \
       --top_rank 2 \
       --colabfold_model_preset "alphafold2_multimer_v3" \
       -profile unity \
