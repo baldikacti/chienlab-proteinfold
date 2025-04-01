@@ -35,7 +35,7 @@ getFasta <- function(base_url, outfile) {
         message(paste0("Downloaded: ", basename(url), "\n"))
       },
       error = function(e) {
-        message(paste("Encountered error processing:", base_url[i]))
+        message(paste("Encountered error processing:", basename(url)))
         message(conditionMessage(e))
         NA
       }
