@@ -1,3 +1,7 @@
+# Version v0.5.1
+
+- Fixed a bug in fasta pair generation script that failed to catch download errors.
+
 # Version v0.5.0
 
 - Custom fasta files can be used as bait.

@@ -86,7 +86,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.5.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.5.1 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --org_ref /path/to/organism_reference.tsv \
@@ -180,7 +180,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.3.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.5.1 \
       --input tests/acclist.tsv \
       --outdir results \
       --org_ref tests/uniprotkb_proteome_UP000001364_cc.tsv \
