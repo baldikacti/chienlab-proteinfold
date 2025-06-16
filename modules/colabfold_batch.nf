@@ -1,11 +1,7 @@
 process COLABFOLD_BATCH {
     tag "$accID"
     label "gpu"
-    publishDir = [
-                path: { "${params.outdir}/${params.mode}/$outDir/$accID" },
-                mode: 'copy',
-                pattern: '*.*'
-            ]
+    publishDir "${params.outdir}/${params.mode}/$outDir/$accID", mode: 'copy', pattern: '*.*'
 
     container "docker://ghcr.io/sokrypton/colabfold:1.5.5-cuda12.2.2"
 
@@ -31,7 +27,6 @@ process COLABFOLD_BATCH {
         --msa-mode 'mmseqs2_uniref_env' \\
         --model-type ${cb_model} \\
         --data \$PWD \\
-        --host-url http://cfold-db:8888 \\
         $args
     """
 }

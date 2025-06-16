@@ -1,10 +1,6 @@
 process PREPROCESS_FASTA_PAIRS {
     label 'process_single'
-    publishDir = [
-                path: { "${params.outdir}/fasta" },
-                mode: 'copy',
-                pattern: '*.fasta'
-            ]
+    publishDir "${params.outdir}/fasta", mode: 'copy', pattern: '*.fasta'
 
     container "docker://baldikacti/chienlab_proteinfold_rverse:4.4.2"
 
@@ -16,6 +12,6 @@ process PREPROCESS_FASTA_PAIRS {
 
     script:
     """
-    combine_fasta.R --acc_file ${acc_file} --proj_dir $projectDir
+    combine_fasta.R --acc_file ${acc_file} --proj_dir ${workflow.launchDir}
     """
 }

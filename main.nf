@@ -17,20 +17,6 @@ nextflow.enable.dsl = 2
 
 include { COLABFOLD             } from './workflows/colabfold'
 
-/*
-================================================================================
-    Validate inputs and create channels for files
-================================================================================
-*/
-
-if (params.input) {
-    ch_input = file(params.input, checkIfExists: true)
-} else { exit 1, 'Input file not specified!' }
-
-if (params.org_ref) {
-    ch_org_ref = file(params.org_ref, checkIfExists: true)
-} else { exit 1, 'Organism reference file not specified!' }
-
 
 /*
 ================================================================================
@@ -38,8 +24,24 @@ if (params.org_ref) {
 ================================================================================
 */
 
+
 workflow {
     main:
+
+
+    /*
+        Validate inputs and create channels for files
+    */
+    if (!params.input) {
+        exit 1, 'Input file not specified!'
+    }
+
+    Channel
+        .fromPath(params.input, checkIfExists: true)
+        .set { ch_input }
+
+    // Creates channel for the organism reference file if exists, otherwise uses a placeholder
+    ch_org_ref = params.org_ref ? Channel.fromPath(params.org_ref, checkIfExists: true) : Channel.fromPath("$projectDir/assets/NO_FILE")
 
 
     COLABFOLD (
@@ -48,5 +50,4 @@ workflow {
         params.num_recycles_colabfold,
         ch_org_ref
     )
-
 }

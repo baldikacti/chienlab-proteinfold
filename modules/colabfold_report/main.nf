@@ -1,10 +1,6 @@
 process COLAB_REPORT {
     label 'process_single'
-    publishDir = [
-                path: { "${params.outdir}/ranked_results" },
-                mode: 'copy',
-                pattern: '*.html'
-            ]
+    publishDir "${params.outdir}/ranked_results", mode: 'copy', pattern: '*.html'
 
     container "docker://baldikacti/chienlab_proteinfold_rverse:4.4.2"
 

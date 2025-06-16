@@ -1,10 +1,6 @@
 process RANK_IPTM {
     label 'process_single'
-    publishDir = [
-                path: { "${params.outdir}/ranked_results" },
-                mode: 'copy',
-                pattern: '*.tsv'
-            ]
+    publishDir "${params.outdir}/ranked_results", mode: 'copy', pattern: '*.tsv'
 
     container "docker://baldikacti/chienlab_proteinfold_rverse:4.4.2"
 
@@ -16,7 +12,8 @@ process RANK_IPTM {
     path ("*.tsv") , emit: tsv
 
     script:
+    def ref = org_ref.name != 'NO_FILE' ? "$org_ref" : 'NO_REF'
     """
-    rank_pairs.R ${org_ref}
+    rank_pairs.R $ref
     """
 }
