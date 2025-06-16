@@ -4,11 +4,11 @@ This is a convienience [Nextflow](https://www.nextflow.io/) pipeline for generat
 
 This pipeline is in active development. All versions will be tagged with a version number, so you can use the `nextflow run -r <version>` to use specific versions of the pipeline.
 
-This pipeline is meant for the [Unity HPC](https://unity.rc.umass.edu/index.php) cluster users using [Slurm](https://slurm.schedmd.com/documentation.html) scheduler. It can be adjusted to run locally or other schedulers relatively easily. The pipeline is inspired by several other open source projects like [nf-core/proteinfold](https://github.com/nf-core/proteinfold), and [LazyAF](https://github.com/ThomasCMcLean/LazyAF).
+This pipeline is meant for the [Unity HPC](https://unity.rc.umass.edu/index.php) cluster users using [Slurm](https://slurm.schedmd.com/documentation.html) scheduler. It can be adjusted to run locally or other schedulers relatively easily. The pipeline is inspired by several other open source projects like [nf-core/proteinfold](https://github.com/nf-core/proteinfold), and[AlphaPulldown](https://github.com/KosinskiLab/AlphaPulldown).
 
 # Usage
 
-1. Download Proteome `tsv` file for your organism of interest from Uniprot.
+1. Download Proteome `tsv` file for your organism of interest from Uniprot. (Optional)
     - Navigate to `https://www.uniprot.org/`
     - Select `Proteomes` from the the dropdown menu from left side of the search bar
     - Enter the name of your organism of interest
@@ -20,7 +20,7 @@ This pipeline is meant for the [Unity HPC](https://unity.rc.umass.edu/index.php)
     - Select **Compressed** = `No`
     - Optional: You can customize columns in the data by adding or substracting whatever you want. This will be automatically added the the `ranked_results` table at the end of the pipeline
 
-2. Create a new `tsv` file with `Entry` and `bait` columns as below. `Entry` column can be either a UniprotID or a relative path to a `fasta` file. 
+2. Create a new `tsv` file with `Entry` and `bait` columns as below. `Entry` column can be either a UniprotID or a relative path to a `fasta` file. `fasta` file/s can have multiple entries.
 
 Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated. 
 
@@ -50,8 +50,6 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 
 - **output** = Path to result directory. [`/path/to/results`]
 
-- **org_ref** = Path to the `tsv` file downloaded from Uniprot. [`/path/to/uniprot_organism_reference.tsv`]
-
 - **mode** = Sets the prediction mode. Currently only supports `colabfold`, but `alphafold3` will be added soon. [`colabfold`]
 
 - **num_recycles_colabfold** = Number of recycles to use in Colabfold. Higher the number better the prediction, but the slower the pipeline. [integer]
@@ -59,11 +57,20 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 
 **Optional arguments:**
 
+- **org_ref** = Path to the `tsv` file downloaded from Uniprot. [`/path/to/uniprot_organism_reference.tsv`]
+
 - **top_rank** = Number of top ranked (by `ipTM`) `bait:pair` predictions to pick for rerunning with 20 recycles for better prediction quality. [integer]
 
 - **APPTAINER_CACHEDIR** = Absolute path to where `apptainer` will cache the containers used in the pipeline. [`/path/to/.apptainer/cache`]
 
-- **resume** = Enables the pipeline to be used repeatedly. The pipeline will only run incomplete processes when rerun with the same inputs. 
+- Additional optional paramaters can be found in `nextflow.config` file.
+
+
+**Nextflow arguments:**
+
+- **profile** = Set the dependency management profile. [Institution/docker/singularity/apptainer]
+
+- **resume** = Enables the pipeline to be used repeatedly. The pipeline will only run incomplete processes when rerun with the same inputs.
 
 
 **main.sh**
@@ -78,7 +85,7 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 #SBATCH -q long
 #SBATCH --output=logs/chienlab-proteinfold_%j.log
 
-module load nextflow/24.04.3 apptainer/latest
+module load nextflow/24.10.3 apptainer/latest
 
 APPTAINER_CACHEDIR=/path/to/.apptainer/cache  # Path to cache directory for apptainer cache
 
@@ -86,7 +93,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.5.1 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.6.0 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --org_ref /path/to/organism_reference.tsv \
@@ -172,7 +179,7 @@ In this example the `tests` directory is under `/work/pi_pchien_umass_edu/berent
 #SBATCH -q long
 #SBATCH --output=logs/chienlab-proteinfold_%j.log
 
-module load nextflow/24.04.3 apptainer/latest
+module load nextflow/24.10.3 apptainer/latest
 
 APPTAINER_CACHEDIR=/path/to/.apptainer/cache  # Path to cache directory for apptainer cache
 
@@ -180,14 +187,14 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.5.1 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.6.0 \
       --input tests/acclist.tsv \
       --outdir results \
-      --org_ref tests/uniprotkb_proteome_UP000001364_cc.tsv \
       --mode colabfold \
       --num_recycles_colabfold 3 \
       --top_rank 2 \
       --colabfold_model_preset "alphafold2_multimer_v3" \
+      --host_url "http://cfold-db:8888" \
       -profile unity \
       -resume
 ```

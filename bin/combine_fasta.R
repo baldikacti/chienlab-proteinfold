@@ -65,16 +65,19 @@ is_absolute_path <- function(path) {
 fasta_df <- data.frame()
 if (length(acc_fasta) > 0) {
   # Copy files to workdir
-  if (is_absolute_path(acc_fasta)) {
-    file.copy(acc_fasta, ".")
+  for (f in acc_fasta) {
+    if (is_absolute_path(f)) {
+      file.copy(f, ".")
   } else {
-    file.copy(file.path(opt$proj_dir, acc_fasta), ".")
+      file.copy(file.path(opt$proj_dir, f), ".")
   }
+  }
+
   fasta_df <- do.call(
     rbind,
     lapply(seq_along(acc_fasta), function(i) {
       fasta_content <- read.fasta(
-        acc_fasta[i],
+        basename(acc_fasta[i]),
         seqtype = "AA",
         as.string = TRUE,
         set.attributes = FALSE
@@ -87,6 +90,8 @@ if (length(acc_fasta) > 0) {
       )
     })
   )
+  # Clean the input fastas from work dir
+  file.remove(basename(acc_fasta))
 }
 
 # For non-fasta entries, use get_fasta to fetch from Uniprot

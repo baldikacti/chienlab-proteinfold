@@ -7,6 +7,7 @@ library(readr)
 
 
 args <- commandArgs(trailingOnly = TRUE)
+args[1] <- "NO_REF"
 
 # Read reference file if exists, otherwise create a data frame with NA
 if (args[1] != "NO_REF") {
@@ -30,7 +31,8 @@ iptm_vals <- vapply(
 )
 
 # Regular expression to capture the components of the json files names
-pattern <- "^([A-Z0-9-]+)_scores_(rank_\\d{3})_(.*)_(model_\\d{1})_(seed_\\d{3})\\.json$" # nolint
+pattern <- "^(.+?)_scores_(rank_\\d{3})_(.+)_(model_\\d{1})_(seed_\\d{3})\\.json$"
+
 # Apply the regex to extract the components
 matches <- regmatches(basename(json_ls), regexec(pattern, basename(json_ls))) |>
   do.call(rbind, args = _) |>

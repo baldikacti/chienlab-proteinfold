@@ -1,3 +1,13 @@
+# Version v0.6.0
+
+- Allows `fasta` file inputs with one or more entries in the input `tsv` file.
+
+- Allows for custom `--host_url` for ColabFold MSAserver.
+
+- `--org_ref` paramater is not optional.
+
+- Fixed certain edge cases.
+
 # Version v0.5.1
 
 - Fixed a bug in fasta pair generation script that failed to catch download errors.
