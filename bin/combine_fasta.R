@@ -95,6 +95,7 @@ if (length(acc_fasta) > 0) {
 }
 
 # For non-fasta entries, use get_fasta to fetch from Uniprot
+uniprot_df <- data.frame()
 if (length(acc_uniprot) > 0) {
   uniprot_df <- do.call(
     rbind,
