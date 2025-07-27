@@ -3,9 +3,9 @@ cache/
 logs/
 work/
 results/
+tests/
 .nextflow/
 .nextflow.log*
-test_af3.sh
-main.sh
+*.sh
 .Rproj.user
 *dev/
