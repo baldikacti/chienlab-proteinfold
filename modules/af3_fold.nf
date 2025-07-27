@@ -1,7 +1,7 @@
 process AF3_FOLD {
     tag "$id"
     label "gpu_af3"
-    publishDir "${params.output_dir}", mode: 'copy', pattern: "folds/*"
+    publishDir "${params.outdir}/${params.mode}", mode: 'copy', pattern: "folds/*"
 
     input:
     tuple val(id), path("input_a3m/*")

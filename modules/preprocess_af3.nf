@@ -1,6 +1,6 @@
 process PREPROCESS_AF3 {
     label 'process_single'
-    publishDir "${params.outdir}/json", mode: 'copy', pattern: '*.json'
+    publishDir "${params.outdir}/${params.mode}/input_jsons", mode: 'copy', pattern: '*.json'
 
     container "docker://baldikacti/chienlab_proteinfold_py:latest"
 

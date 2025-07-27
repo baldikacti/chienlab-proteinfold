@@ -248,7 +248,7 @@ class AF3Converter:
             print(f"Error writing file {filepath}: {e}")
             return None
     
-    def convert(self, tsv_file: str | Path, output_dir: str = "output", workdir: str = ".") -> List[Path]:
+    def convert(self, tsv_file: str | Path, output_dir: str = "output", workdir: str = ".") -> List[Path] | ValueError:
         """Convert TSV to multiple AlphaFold3 JSON files."""
         df = self.read_tsv(tsv_file)
         
@@ -257,12 +257,10 @@ class AF3Converter:
         
         # Validate data
         if df['bait'].sum() == 0:
-            print("Error: No bait entries found (bait=1)")
-            return
+            raise ValueError("No bait entries found (bait=1)")
         
         if (df['bait'] == 0).sum() == 0:
-            print("Error: No prey entries found (bait=0)")
-            return
+            raise ValueError("No prey entries found (bait=0)")
         
         # Generate combinations
         combinations = self.generate_combinations(df)

@@ -1,7 +1,7 @@
 process AF3_MSA {
     tag "$id"
     label "process_high"
-    publishDir "${params.output_dir}/msa/$id", mode: 'copy', pattern: "${id}_data.json"
+    publishDir "${params.outdir}/${params.mode}/msa/$id", mode: 'copy', pattern: "${id}_data.json"
 
     input:
     tuple val(id), path(json)
