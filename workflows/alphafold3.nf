@@ -24,11 +24,11 @@ workflow ALPHAFOLD3 {
     PREPROCESS_AF3 (
         accession_file
     )
-    ch_json_raw = PREPROCESS_AF3.out.json
+    ch_json_raw = PREPROCESS_AF3.out.json.flatten()
 
     AF3_MSA (
         ch_json_raw,
-        database_dir
+        model_dir
     )
     msa_json = AF3_MSA.out.af3_json_processed
 
