@@ -66,7 +66,7 @@ class AF3Converter:
         if not fasta_path.is_absolute():
             fasta_path = self.workdir / fasta_path
         try:
-            with open(fasta_file, 'r') as f:
+            with open(fasta_path, 'r') as f:
                 lines = f.readlines()
             
             header_count = 0
@@ -77,21 +77,21 @@ class AF3Converter:
                 if line.startswith('>'):
                     header_count += 1
                     if header_count > 1:
-                        raise ValueError(f"FASTA file {fasta_file} contains multiple entries. Only single-entry FASTA files are supported.")
+                        raise ValueError(f"FASTA file {fasta_path} contains multiple entries. Only single-entry FASTA files are supported.")
                 elif line:  # Non-empty sequence line
                     sequence += line
             
             if header_count == 0:
-                raise ValueError(f"FASTA file {fasta_file} contains no header lines.")
+                raise ValueError(f"FASTA file {fasta_path} contains no header lines.")
             
             if not sequence:
-                raise ValueError(f"FASTA file {fasta_file} contains no sequence data.")
+                raise ValueError(f"FASTA file {fasta_path} contains no sequence data.")
             
             return sequence
         except FileNotFoundError:
-            raise FileNotFoundError(f"FASTA file {fasta_file} not found.")
+            raise FileNotFoundError(f"FASTA file {fasta_path} not found.")
         except Exception as e:
-            raise RuntimeError(f"Error reading FASTA file {fasta_file}: {e}")
+            raise RuntimeError(f"Error reading FASTA file {fasta_path}: {e}")
     
     def get_entry_type(self, entry: str) -> str:
         """Determine the entry type."""
@@ -226,16 +226,17 @@ class AF3Converter:
         # Create structure name using basename for FASTA files
         bait_name = Path(bait_entry).stem if bait_entry.endswith(('.fasta', '.fa')) else bait_entry
         prey_name = Path(prey_entry).stem if prey_entry.endswith(('.fasta', '.fa')) else prey_entry
+        safe_bait = re.sub(r'[^\w\-_.]', '_', bait_name)
+        safe_prey = re.sub(r'[^\w\-_.]', '_', prey_name)
+        safe_name = f"{safe_bait}_{safe_prey}"
         
         # Create structure
         structure = self.base_structure.copy()
-        structure["name"] = f"{bait_name}_{prey_name}"
+        structure["name"] = safe_name
         structure["sequences"] = sequences
         
         # Create filename using basename for FASTA files
-        safe_bait = re.sub(r'[^\w\-_.]', '_', bait_name)
-        safe_prey = re.sub(r'[^\w\-_.]', '_', prey_name)
-        filename = f"{safe_bait}_{safe_prey}.json"
+        filename = f"{safe_name}.json"
         filepath = Path(output_dir) / filename
         
         # Write file
