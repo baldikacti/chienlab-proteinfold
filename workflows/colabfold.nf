@@ -16,9 +16,12 @@ workflow COLABFOLD {
     accession_file
     colabfold_model_preset
     num_recycles_colabfold
-    organism_ref
 
     main:
+
+    // Creates channel for the organism reference file if exists, otherwise uses a placeholder
+    organism_ref = params.org_ref ? Channel.fromPath(params.org_ref, checkIfExists: true) : Channel.fromPath("$projectDir/assets/NO_FILE")
+
     //
     // Create input channel from input file provided through params.input
     //

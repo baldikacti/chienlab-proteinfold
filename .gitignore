@@ -5,4 +5,7 @@ work/
 results/
 .nextflow/
 .nextflow.log*
+test_af3.sh
 main.sh
+.Rproj.user
+*dev/

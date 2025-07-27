@@ -1,6 +1,6 @@
 process COLABFOLD_BATCH {
     tag "$accID"
-    label "gpu"
+    label "gpu_colabfold"
     publishDir "${params.outdir}/${params.mode}/$outDir/$accID", mode: 'copy', pattern: '*.*'
 
     container "docker://ghcr.io/sokrypton/colabfold:1.5.5-cuda12.2.2"

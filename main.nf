@@ -7,8 +7,6 @@
 ----------------------------------------------------------------------------------------
 */
 
-nextflow.enable.dsl = 2
-
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     IMPORT FUNCTIONS / MODULES / WORKFLOWS
@@ -16,6 +14,8 @@ nextflow.enable.dsl = 2
 */
 
 include { COLABFOLD             } from './workflows/colabfold'
+include { ALPHAFOLD3            } from './workflows/alphafold3'
+include { checkRequiredParams   } from './lib/checkparams.groovy'
 
 
 /*
@@ -29,25 +29,29 @@ workflow {
     main:
 
 
-    /*
-        Validate inputs and create channels for files
-    */
-    if (!params.input) {
-        exit 1, 'Input file not specified!'
-    }
+    // Check and validate input paramaters
+    checkRequiredParams()
 
     Channel
         .fromPath(params.input, checkIfExists: true)
         .set { ch_input }
 
-    // Creates channel for the organism reference file if exists, otherwise uses a placeholder
-    ch_org_ref = params.org_ref ? Channel.fromPath(params.org_ref, checkIfExists: true) : Channel.fromPath("$projectDir/assets/NO_FILE")
+    if (params.mode == "colabfold") {
+        COLABFOLD (
+            ch_input,
+            params.colabfold_model_preset,
+            params.num_recycles_colabfold
+        )
+    } else if (params.mode == "alphafold3") {
+        
+        ch_af3_db = file(params.db_dir, checkIfExists: true)
+        ch_model_dir = file(params.model_dir, checkIfExists: true)
+        
+        ALPHAFOLD3 (
+            ch_input,
+            ch_af3_db,
+            ch_model_dir
+        )
+    }
 
-
-    COLABFOLD (
-        ch_input,
-        params.colabfold_model_preset,
-        params.num_recycles_colabfold,
-        ch_org_ref
-    )
 }
