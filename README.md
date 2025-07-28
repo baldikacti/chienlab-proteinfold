@@ -6,7 +6,9 @@ This pipeline is in active development. All versions will be tagged with a versi
 
 This pipeline is meant for the [Unity HPC](https://unity.rc.umass.edu/index.php) cluster users using [Slurm](https://slurm.schedmd.com/documentation.html) scheduler. It can be adjusted to run locally or other schedulers relatively easily. The pipeline is inspired by several other open source projects like [nf-core/proteinfold](https://github.com/nf-core/proteinfold), and[AlphaPulldown](https://github.com/KosinskiLab/AlphaPulldown).
 
-# Usage
+# Usage examples
+
+## Usage: ColabFold
 
 1. Download Proteome `tsv` file for your organism of interest from Uniprot. (Optional)
     - Navigate to `https://www.uniprot.org/`
@@ -46,11 +48,11 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 
 **Mandatory arguments:**
 
-- **input** = Path to `tsv` file which has the uniprot IDs and `bait` status. [`/path/to/input.tsv`]
+- **input** = Path to `tsv` file. [`/path/to/input.tsv`]
 
 - **output** = Path to result directory. [`/path/to/results`]
 
-- **mode** = Sets the prediction mode. Currently only supports `colabfold`, but `alphafold3` will be added soon. [`colabfold`]
+- **mode** = Sets the prediction mode. [`colabfold`]
 
 - **num_recycles_colabfold** = Number of recycles to use in Colabfold. Higher the number better the prediction, but the slower the pipeline. [integer]
 
@@ -93,7 +95,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.6.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.7.3 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --org_ref /path/to/organism_reference.tsv \
@@ -107,9 +109,9 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.6.0 \
 
 4. Submit to slurm with `sbatch main.sh`
 
-# Results
+## Results
 
-## Directory Structure
+### Directory Structure
 
 Example results output directory structure can be found below. 
 
@@ -146,26 +148,54 @@ Example results output directory structure can be found below.
     └── ranked_results.tsv
 ```
 
-## Pipeline Summary
+## Usage: Alphafold3
 
-When a run successfully finishes, the `.log` file (set by `#SBATCH --output=/path/to/mylog_%j.log`) will contain a short summary of total execution time, successful and failed jobs. (Check `pipeline_info` directory for detailed execution summaries.)
+1. Create a new `tsv` file with `Entry` and `bait` columns as below. `Entry` column can be a UniprotID, a relative path to a `fasta` file, a `CCD` code prefixed by `CCD:`, or a `SMILES` code prefixed by `SMILES:`.
 
-The pipeline is set up in a way if a job fails, it is retried with higher resources up to two times and `ignored` on the 3 failed attempt. Due to this, if you see a number next to the `Ignored` section in the summary it means that that number of predictions completely failed to produce results. This is most likely due to the size limitation of `ColabFold`.
+Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated. 
 
-```bash
-Completed at: <Date and time when the pipeline finished>
-Duration    : <Total execution duration>
-CPU hours   : <CPU hours>
-Succeeded   : <number of successfull jobs>
-Failed      : <number of failed jobs>
-Ignored     : <number of ignored jobs>
-```
+**acclist.tsv**
+| Entry         | bait  |
+| :-----------: | :--:  |
+| CCD:MG        | 1     |
+| P25685        | 0     |
+| ref/my.fasta  | 0     |
+| Q02790        | 0     |
 
-# Example
+2. Example submission script below.
 
-Below example uses the bait:prey file `acclist.tsv` and the Caulobacter crescentus proteome reference file `uniprotkb_proteome_UP000001364_cc.tsv`. Both are under a directory called `tests` in this repository.
+**Mandatory arguments:**
 
-In this example the `tests` directory is under `/work/pi_pchien_umass_edu/berent/chienlab-proteinfold`. Remember absolute paths starts with a trailing `/`.
+- **input** = Path to `tsv` file. [`/path/to/input.tsv`]
+
+- **output** = Path to result directory. [`/path/to/results`]
+
+- **model_dir** = Path to the Alphafol3 model paramters directory. [`/path/to/params`]
+    
+- **db_dir** = Path to the Alphafold3 database. [`/datasets/bio/alphafold3`]
+
+- **mode** = Sets the prediction mode. [`alphafold3`]
+
+
+**Optional arguments:**
+
+- **max_template_date** = The date for max template date to be used. [`2021-09-30`]
+
+- **num_recycles** = Number of recycles to be used for inference. [10]
+
+- **inf_batch** = Number used for batching number of inference runs per GPU. Used for efficiency. [20]
+
+- **APPTAINER_CACHEDIR** = Absolute path to where `apptainer` will cache the containers used in the pipeline. [`/path/to/.apptainer/cache`]
+
+- Additional optional paramaters can be found in `nextflow.config` file.
+
+
+**Nextflow arguments:**
+
+- **profile** = Set the dependency management profile. [Institution/docker/singularity/apptainer]
+
+- **resume** = Enables the pipeline to be used repeatedly. The pipeline will only run incomplete processes when rerun with the same inputs.
+
 
 **main.sh**
 ```bash
@@ -187,16 +217,65 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.6.0 \
-      --input tests/acclist.tsv \
-      --outdir results \
-      --mode colabfold \
-      --num_recycles_colabfold 3 \
-      --top_rank 2 \
-      --colabfold_model_preset "alphafold2_multimer_v3" \
-      --host_url "http://cfold-db:8888" \
+nextflow run baldikacti/chienlab-proteinfold -r v0.7.3 \
+      --input /path/to/acclist.tsv \
+      --outdir /path/to/results \
+      --model_dir /path/to/model/params \
+      --db_dir /path/to/db \
+      --mode alphafold3 \
       -profile unity \
       -resume
 ```
 
-Submit with `sbatch main.sh`.
+3. Submit to slurm with `sbatch main.sh`
+
+# Results
+
+## Directory Structure
+
+Example results output directory structure can be found below. 
+
+**Legend**
+
+- *alphafold3*: Contains the `Alphafold3` prediction results for each `bait:prey` pair.
+
+- *input_json*: Contains all `bait:prey` combined JSON files structured in Alphafold3 required structure.
+
+- *msa*: Contains the MSAs generated from input JSON files
+
+- *folds*: Contains directories for each inference result
+
+- *pipeline_info*: Contains pipeline execution summaries
+
+- *ranked_results*: Contains the `ranked_results.tsv` file that contains ranked (by `ipTM`) `bait:prey` predictions.
+
+```bash
+<outdir>
+├── colabfold
+│   ├── input_json # Contains the generated input JSON files for alphafold3
+│   │   ...
+│   ├── msa # Contains the MSAs generated from input JSON files
+│   │   ...
+│   └── folds # Contains directories for each inference result
+│       ...
+├── pipeline_info
+│   ├── # Execution summaries (html, txt)
+│   ...
+└── ranked_results
+    └── ranked_results.tsv
+```
+
+## Pipeline Summary
+
+When a run successfully finishes, the `.log` file (set by `#SBATCH --output=/path/to/mylog_%j.log`) will contain a short summary of total execution time, successful and failed jobs. (Check `pipeline_info` directory for detailed execution summaries.)
+
+The pipeline is set up in a way if a job fails, it is retried with higher resources up to two times and `ignored` on the 3 failed attempt. Due to this, if you see a number next to the `Ignored` section in the summary it means that that number of predictions completely failed to produce results. This is most likely due to the size limitation of `ColabFold` or `Alphafol3`.
+
+```bash
+Completed at: <Date and time when the pipeline finished>
+Duration    : <Total execution duration>
+CPU hours   : <CPU hours>
+Succeeded   : <number of successfull jobs>
+Failed      : <number of failed jobs>
+Ignored     : <number of ignored jobs>
+```

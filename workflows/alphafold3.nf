@@ -34,11 +34,6 @@ workflow ALPHAFOLD3 {
 
     ch_msa_json = msa_json
         .collate( params.inf_batch )
-        .map { v ->
-            def ids = v.collect { it[0] }
-            def json_paths = v.collect { it[1] }
-            [ids, json_paths]
-        }
 
     AF3_FOLD (
         ch_msa_json,

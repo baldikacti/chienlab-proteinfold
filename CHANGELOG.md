@@ -1,3 +1,9 @@
+# Version v0.7.3
+
+- Adds `alphafold3` mode.
+
+- TSV inputs now accepts `CCD` and `SMILES` inputs. Entries needs to be prefixed with either `CCD:` or `SMILES:`.
+
 # Version v0.6.0
 
 - Allows `fasta` file inputs with one or more entries in the input `tsv` file.
