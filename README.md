@@ -1,6 +1,6 @@
 # Introduction
 
-This is a convienience [Nextflow](https://www.nextflow.io/) pipeline for generating high-throughtput bait:pair protein structure predictions using [Colabfold](https://github.com/sokrypton/ColabFold). The pipeline simply accepts a `tsv` file of UniprotIDs and bait status as described in the `Usage` section and produces structure predictions and a ranked result file using the `ipTM` values. 
+This is a convienience [Nextflow](https://www.nextflow.io/) pipeline for generating high-throughtput bait:pair protein structure predictions using [Colabfold](https://github.com/sokrypton/ColabFold), or [Alphafold3](https://github.com/google-deepmind/alphafold3). The pipeline simply accepts a `tsv` file of bait and prey sequences as described in the `Usage examples` section and produces structure predictions and a ranked result file using the `ipTM` values. 
 
 This pipeline is in active development. All versions will be tagged with a version number, so you can use the `nextflow run -r <version>` to use specific versions of the pipeline.
 
@@ -95,7 +95,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.7.3 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.7.4 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --org_ref /path/to/organism_reference.tsv \
@@ -217,7 +217,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.7.3 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.7.4 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --model_dir /path/to/model/params \
