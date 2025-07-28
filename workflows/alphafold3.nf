@@ -16,8 +16,8 @@ include { AF3_FOLD          } from '../modules/af3_fold'
 workflow ALPHAFOLD3 {
     take:
     accession_file
-    model_dir
     database_dir
+    model_dir
 
     main:
 
@@ -28,7 +28,7 @@ workflow ALPHAFOLD3 {
 
     AF3_MSA (
         ch_json_raw,
-        model_dir
+        database_dir
     )
     msa_json = AF3_MSA.out.af3_json_processed
 
