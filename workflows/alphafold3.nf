@@ -7,6 +7,7 @@
 include { PREPROCESS_AF3    } from '../modules/preprocess_af3'
 include { AF3_MSA           } from '../modules/af3_msa'
 include { AF3_FOLD          } from '../modules/af3_fold'
+include { AF3_RANK          } from '../modules/af3_rank'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -39,5 +40,10 @@ workflow ALPHAFOLD3 {
         ch_msa_json,
         database_dir,
         model_dir
+    )
+    ch_json_confidence = AF3_FOLD.out.summary_json.collect()
+
+    AF3_RANK (
+        ch_json_confidence
     )
 }

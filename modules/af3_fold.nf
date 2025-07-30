@@ -9,6 +9,7 @@ process AF3_FOLD {
 
     output:
     path "folds/*"
+    path ("*summary_confidences.json") , emit: summary_json
 
     script:
     def args = task.ext.args ?: ''
