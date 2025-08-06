@@ -4,10 +4,10 @@
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 */
 
-include { PREPROCESS_AF3    } from '../modules/preprocess_af3'
+include { PROCESS_TSV       } from '../modules/process_tsv'
 include { AF3_MSA           } from '../modules/af3_msa'
 include { AF3_FOLD          } from '../modules/af3_fold'
-include { AF3_RANK          } from '../modules/af3_rank'
+include { RANK_AF           } from '../modules/rank_af'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -22,10 +22,8 @@ workflow ALPHAFOLD3 {
 
     main:
 
-    PREPROCESS_AF3 (
-        accession_file
-    )
-    ch_json_raw = PREPROCESS_AF3.out.json.flatten()
+    PROCESS_TSV (accession_file, 'alphafold3')
+    ch_json_raw = PROCESS_TSV.out.processed_tsv_output.flatten()
 
     AF3_MSA (
         ch_json_raw,
@@ -43,7 +41,8 @@ workflow ALPHAFOLD3 {
     )
     ch_json_confidence = AF3_FOLD.out.summary_json.collect()
 
-    AF3_RANK (
-        ch_json_confidence
+    RANK_AF (
+        ch_json_confidence,
+        'alphafold3'
     )
 }

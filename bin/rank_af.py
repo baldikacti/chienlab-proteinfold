@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to read JSON files and convert to TSV format.
+Script to read AF3 summary confidence scores from JSON files and output a single ranked TSV file.
 Reads all *.json files in the current directory and outputs a single TSV file
 with columns: foldid, fraction_disordered, has_clash, ptm, iptm, ranking_score
 Results are sorted by ranking_score in descending order.
@@ -12,7 +12,7 @@ import os
 import sys
 from pathlib import Path
 
-def process_json_files(input_dir=".", output_file="results.tsv"):
+def process_json_files(input_dir: str, output_file: str, mode: str):
     """
     Process all JSON files in the specified directory and create a TSV file.
     
@@ -39,18 +39,30 @@ def process_json_files(input_dir=".", output_file="results.tsv"):
             with open(json_file, 'r') as f:
                 data = json.load(f)
             
-            # Extract basename without extension for foldid
-            foldid = Path(json_file).stem
-            
-            # Extract required fields
-            row = {
-                'foldid': foldid,
-                'fraction_disordered': data.get('fraction_disordered', ''),
-                'has_clash': data.get('has_clash', ''),
-                'ptm': data.get('ptm', ''),
-                'iptm': data.get('iptm', ''),
-                'ranking_score': data.get('ranking_score', '')
-            }
+            if mode == "colabfold":
+                # Extract basename without extension and the suffix for foldid
+                foldid = Path(json_file).stem.removesuffix("_toprank")
+
+                # Extract required fields
+                row = {
+                    'foldid': foldid,
+                    'iptm': data.get('iptm', '')
+                }
+                headers = ['foldid', 'iptm']
+            elif mode == "alphafold3":
+                # Extract basename without extension for foldid
+                foldid = Path(json_file).stem
+
+                # Extract required fields
+                row = {
+                    'foldid': foldid,
+                    'fraction_disordered': data.get('fraction_disordered', ''),
+                    'has_clash': data.get('has_clash', ''),
+                    'ptm': data.get('ptm', ''),
+                    'iptm': data.get('iptm', ''),
+                    'ranking_score': data.get('ranking_score', '')
+                }
+                headers = ['foldid', 'fraction_disordered', 'has_clash', 'ptm', 'iptm', 'ranking_score']
             
             data_rows.append(row)
             
@@ -62,18 +74,16 @@ def process_json_files(input_dir=".", output_file="results.tsv"):
         print("No valid JSON files processed")
         return
     
-    # Sort by ranking_score in descending order
-    # Handle cases where ranking_score might be missing or non-numeric
+    # Sort by the last entry in the dict
+    # Handle cases where sorting key is missing or non-numeric
     def safe_sort_key(row):
-        score = row['ranking_score']
+        last_key = list(row.keys())[-1]
+        score = row[last_key]
         if isinstance(score, (int, float)):
             return score
         return -float('inf')  # Put invalid scores at the end
     
     data_rows.sort(key=safe_sort_key, reverse=True)
-    
-    # Write TSV file
-    headers = ['foldid', 'fraction_disordered', 'has_clash', 'ptm', 'iptm', 'ranking_score']
     
     try:
         with open(output_file, 'w') as f:
@@ -90,9 +100,9 @@ def process_json_files(input_dir=".", output_file="results.tsv"):
         
     except IOError as e:
         print(f"Error writing output file {output_file}: {e}")
+    
 
 def main():
-    """Main function with command line argument support"""
     import argparse
     
     parser = argparse.ArgumentParser(description='Convert JSON files to TSV format')
@@ -100,6 +110,8 @@ def main():
                         help='Input directory containing JSON files (default: current directory)')
     parser.add_argument('--output', '-o', default='results.tsv',
                         help='Output TSV filename (default: results.tsv)')
+    parser.add_argument('--mode',
+                        help='Set the input format. Options: colabfold, alphafold3')
     
     args = parser.parse_args()
     
@@ -108,7 +120,7 @@ def main():
         print(f"Error: Input directory '{args.input_dir}' does not exist")
         sys.exit(1)
     
-    process_json_files(args.input_dir, args.output)
+    process_json_files(args.input_dir, args.output, args.mode)
 
 if __name__ == "__main__":
     main()

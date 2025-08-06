@@ -2,7 +2,7 @@
 """
 AlphaFold3 TSV to JSON Converter
 Converts a TSV file with bait/prey entries to separate AlphaFold3 JSON files
-for each unique bait-prey combination.
+for each unique bait-prey combination, or ColabFold FASTA files.
 """
 
 import json
@@ -13,10 +13,10 @@ import requests
 import time
 from pathlib import Path
 import re
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Dict, List, Tuple, Optional, Any, Union
 
 
-class AF3Converter:
+class TSV2AFConverter:
     def __init__(self, workdir: str = ".") -> None:
         self.base_structure = {
             "name": "",
@@ -31,7 +31,7 @@ class AF3Converter:
             'User-Agent': 'AF3Converter/1.0 (Python script for AlphaFold3 conversion)'
         })
     
-    def read_tsv(self, tsv_file: str | Path) -> pd.DataFrame:
+    def read_tsv(self, tsv_file: Union[str, Path]) -> pd.DataFrame:
         """Read the input TSV file."""
         try:
             df = pd.read_csv(tsv_file, sep='\t')
@@ -59,35 +59,52 @@ class AF3Converter:
             print(f"Error fetching UniProt sequence for {uniprot_id}: {e}")
             return None
     
-    def read_fasta(self, fasta_file: str | Path) -> str:
-        """Read a FASTA file and return the sequence. Ensures only 1 entry per file."""
+    def read_fasta(self, fasta_file: Union[str, Path]) -> Union[str, Dict[str, str]]:
+        """Read a FASTA file and return the sequence(s). 
+        
+        Args:
+            fasta_file: Path to FASTA file
+        """
         # Build full path using workdir if fasta_file is relative
         fasta_path = Path(fasta_file)
         if not fasta_path.is_absolute():
             fasta_path = self.workdir / fasta_path
+        
         try:
             with open(fasta_path, 'r') as f:
                 lines = f.readlines()
             
-            header_count = 0
-            sequence = ""
+            sequences = {}
+            current_header = None
+            current_sequence = ""
             
             for line in lines:
                 line = line.strip()
                 if line.startswith('>'):
-                    header_count += 1
-                    if header_count > 1:
-                        raise ValueError(f"FASTA file {fasta_path} contains multiple entries. Only single-entry FASTA files are supported.")
+                    # Save previous sequence if exists
+                    if current_header is not None:
+                        sequences[current_header] = current_sequence
+                    
+                    # Start new sequence
+                    current_header = line.removeprefix('>').split(" ")[0]  # Remove '>' prefix and only take first part of the name
+                    current_sequence = ""
                 elif line:  # Non-empty sequence line
-                    sequence += line
+                    current_sequence += line
             
-            if header_count == 0:
-                raise ValueError(f"FASTA file {fasta_path} contains no header lines.")
+            # Save last sequence
+            if current_header is not None:
+                sequences[current_header] = current_sequence
             
-            if not sequence:
-                raise ValueError(f"FASTA file {fasta_path} contains no sequence data.")
+            if len(sequences) == 0:
+                raise ValueError(f"FASTA file {fasta_path} contains no entries.")
             
-            return sequence
+            # Check for empty sequences
+            for header, seq in sequences.items():
+                if not seq:
+                    raise ValueError(f"FASTA file {fasta_path} contains empty sequence for entry '{header}'.")
+            
+            return sequences
+                
         except FileNotFoundError:
             raise FileNotFoundError(f"FASTA file {fasta_path} not found.")
         except Exception as e:
@@ -109,6 +126,50 @@ class AF3Converter:
         
         # Default to uniprot
         return 'uniprot'
+    
+    def validate_colabfold_entry(self, entry: str) -> bool:
+        """Validate that entry is suitable for ColabFold mode (UniProt ID or FASTA file only)."""
+        entry_type = self.get_entry_type(entry)
+        return entry_type in ['uniprot', 'fasta_file']
+    
+    def get_protein_sequence(self, entry: str, mode: str = "alphafold3") -> Union[str, Dict[str, str]]:
+        """Get protein sequence(s) from entry.
+        
+        Args:
+            entry: Entry identifier (UniProt ID or FASTA file path)
+            mode: 'alphafold3' for single sequence, 'colabfold' for allowing multiple sequences
+        
+        Returns:
+            For alphafold3: single sequence string
+            For colabfold: dict {header: sequence} for FASTA files, string for UniProt
+        """
+        entry_type = self.get_entry_type(entry)
+        
+        if entry_type == 'uniprot':
+            sequence = self.fetch_uniprot_sequence(entry)
+            if sequence is None:
+                raise RuntimeError(f"Could not fetch UniProt sequence for {entry}")
+            return sequence
+        elif entry_type == 'fasta_file':
+            sequences = self.read_fasta(entry)
+            
+            if isinstance(sequences, dict):
+                # Multiple sequences - validate all are proteins
+                for header, seq in sequences.items():
+                    if self.is_dna_sequence(seq):
+                        raise ValueError(f"FASTA file {entry} entry '{header}' contains DNA sequence, not protein")
+                    if self.is_rna_sequence(seq):
+                        raise ValueError(f"FASTA file {entry} entry '{header}' contains RNA sequence, not protein")
+                return sequences
+            else:
+                # Single sequence - validate it's protein
+                if self.is_dna_sequence(sequences):
+                    raise ValueError(f"FASTA file {entry} contains DNA sequence, not protein")
+                if self.is_rna_sequence(sequences):
+                    raise ValueError(f"FASTA file {entry} contains RNA sequence, not protein")
+                return sequences
+        else:
+            raise ValueError(f"Entry type {entry_type} not supported in ColabFold mode")
     
     def process_entry(self, entry: str, sequence_id: str) -> Optional[Dict[str, Any]]:
         """Process a single entry and return the appropriate sequence object."""
@@ -133,32 +194,63 @@ class AF3Converter:
             }
         
         elif entry_type == 'fasta_file':
-            sequence = self.read_fasta(entry)
-            if sequence:
-                if self.is_dna_sequence(sequence):
-                    return {
-                        "dna": {
-                            "id": sequence_id,
-                            "sequence": sequence
+            try:
+                # Allow multiple entries in both modes now
+                sequences = self.read_fasta(entry)
+                
+                if isinstance(sequences, str):
+                    # Single sequence
+                    if self.is_dna_sequence(sequences):
+                        return {
+                            "dna": {
+                                "id": sequence_id,
+                                "sequence": sequences
+                            }
                         }
-                    }
-                elif self.is_rna_sequence(sequence):
-                    return {
-                        "rna": {
-                            "id": sequence_id,
-                            "sequence": sequence
+                    elif self.is_rna_sequence(sequences):
+                        return {
+                            "rna": {
+                                "id": sequence_id,
+                                "sequence": sequences
+                            }
                         }
-                    }
+                    else:
+                        return {
+                            "protein": {
+                                "id": sequence_id,
+                                "sequence": sequences
+                            }
+                        }
                 else:
-                    return {
-                        "protein": {
-                            "id": sequence_id,
-                            "sequence": sequence
-                        }
-                    }
-            else:
-                print(f"Warning: Could not read FASTA file {entry}")
-                return None
+                    # Multiple sequences - return as list for processing
+                    sequence_objects = []
+                    for i, (header, seq) in enumerate(sequences.items()):
+                        current_id = chr(ord(sequence_id) + i)
+                        if self.is_dna_sequence(seq):
+                            sequence_objects.append({
+                                "dna": {
+                                    "id": current_id,
+                                    "sequence": seq
+                                }
+                            })
+                        elif self.is_rna_sequence(seq):
+                            sequence_objects.append({
+                                "rna": {
+                                    "id": current_id,
+                                    "sequence": seq
+                                }
+                            })
+                        else:
+                            sequence_objects.append({
+                                "protein": {
+                                    "id": current_id,
+                                    "sequence": seq
+                                }
+                            })
+                    return {"multiple": sequence_objects}  # Special marker for multiple sequences
+                    
+            except Exception as e:
+                raise RuntimeError(f"Could not read FASTA file {entry}: {e}")
         
         elif entry_type == 'uniprot':
             sequence = self.fetch_uniprot_sequence(entry)
@@ -170,12 +262,10 @@ class AF3Converter:
                     }
                 }
             else:
-                print(f"Warning: Could not fetch sequence for UniProt ID {entry}")
-                return None
+                raise RuntimeError(f"Could not fetch sequence for UniProt ID {entry}")
         
         else:
-            print(f"Warning: Unknown entry type for {entry}")
-            return None
+            raise ValueError(f"Unknown entry type for {entry}")
     
     def is_dna_sequence(self, sequence: str) -> bool:
         """Check if sequence is DNA."""
@@ -203,54 +293,150 @@ class AF3Converter:
         
         return combinations_list
     
-    def create_json_for_combination(self, bait_entry: str, prey_entry: str, output_dir: str | Path) -> Optional[Path]:
-        """Create a JSON file for a specific bait-prey combination."""
-        sequences = []
-        sequence_id = 'A'
+    def get_entry_name(self, entry: str) -> str:
+        """Get the name to use for the entry in output filenames."""
+        entry_type = self.get_entry_type(entry)
         
-        # Process bait
-        bait_seq = self.process_entry(bait_entry, sequence_id)
-        if bait_seq:
-            sequences.append(bait_seq)
-            sequence_id = chr(ord(sequence_id) + 1)
-        
-        # Process prey
-        prey_seq = self.process_entry(prey_entry, sequence_id)
-        if prey_seq:
-            sequences.append(prey_seq)
-        
-        if not sequences:
-            print(f"Warning: No valid sequences for combination {bait_entry}-{prey_entry}")
-            return None
-        
-        # Create structure name using basename for FASTA files
-        bait_name = Path(bait_entry).stem if bait_entry.endswith(('.fasta', '.fa')) else bait_entry
-        prey_name = Path(prey_entry).stem if prey_entry.endswith(('.fasta', '.fa')) else prey_entry
-        safe_bait = re.sub(r'[^\w\-_.]', '_', bait_name)
-        safe_prey = re.sub(r'[^\w\-_.]', '_', prey_name)
-        safe_name = f"{safe_bait}_{safe_prey}"
-        
-        # Create structure
-        structure = self.base_structure.copy()
-        structure["name"] = safe_name
-        structure["sequences"] = sequences
-        
-        # Create filename using basename for FASTA files
-        filename = f"{safe_name}.json"
-        filepath = Path(output_dir) / filename
-        
-        # Write file
-        try:
-            with open(filepath, 'w') as f:
-                json.dump(structure, f, indent=2)
-            print(f"Created: {filepath}")
-            return filepath
-        except Exception as e:
-            print(f"Error writing file {filepath}: {e}")
-            return None
+        if entry_type == 'fasta_file':
+            # Use the sequence name from the FASTA file
+            try:
+                sequences = self.read_fasta(entry)
+                if isinstance(sequences, dict):
+                    # If multiple sequences, use the first one's name
+                    first_header = next(iter(sequences.keys()))
+                    return first_header
+                else:
+                    # This shouldn't happen with but handle it
+                    return Path(entry).stem
+            except Exception:
+                # Fallback to filename if we can't read the FASTA
+                return Path(entry).stem
+        else:
+            # For non-FASTA entries, use the entry itself (e.g., UniProt ID)
+            return entry
     
-    def convert(self, tsv_file: str | Path, output_dir: str = "output", workdir: str = ".") -> List[Path] | ValueError:
-        """Convert TSV to multiple AlphaFold3 JSON files."""
+    def create_json_for_combination(self, bait_entry: str, prey_entry: str, output_dir: Union[str, Path]) -> List[Path]:
+        """Create JSON file(s) for a specific bait-prey combination."""
+        created_files = []
+        
+        # Process bait with temporary sequence ID
+        bait_seq = self.process_entry(bait_entry, 'A')
+        if bait_seq:
+            if "multiple" in bait_seq:
+                bait_sequences = bait_seq["multiple"]
+            else:
+                bait_sequences = [bait_seq]
+        else:
+            bait_sequences = []
+        
+        # Process prey with temporary sequence ID
+        prey_seq = self.process_entry(prey_entry, 'B')
+        if prey_seq:
+            if "multiple" in prey_seq:
+                prey_sequences = prey_seq["multiple"]
+            else:
+                prey_sequences = [prey_seq]
+        else:
+            prey_sequences = []
+        
+        if not bait_sequences or not prey_sequences:
+            raise RuntimeError(f"No valid sequences for combination {bait_entry}-{prey_entry}")
+        
+        # Generate all combinations for multi-entry FASTA files
+        for i, bait_seq_obj in enumerate(bait_sequences):
+            for j, prey_seq_obj in enumerate(prey_sequences):
+                # Reset sequence IDs for each JSON file: bait = "A", prey = "B"
+                bait_seq_corrected = bait_seq_obj.copy()
+                prey_seq_corrected = prey_seq_obj.copy()
+                
+                # Update the sequence IDs to ensure bait is "A" and prey is "B"
+                for seq_type in ['protein', 'dna', 'rna', 'ligand']:
+                    if seq_type in bait_seq_corrected:
+                        bait_seq_corrected[seq_type]['id'] = 'A'
+                    if seq_type in prey_seq_corrected:
+                        prey_seq_corrected[seq_type]['id'] = 'B'
+                
+                sequences = [bait_seq_corrected, prey_seq_corrected]
+                
+                # Create structure name using sequence name for FASTA files, entry name for others
+                bait_name = self.get_entry_name(bait_entry)
+                prey_name = self.get_entry_name(prey_entry)
+                
+                # Add indices for multiple sequences
+                if len(bait_sequences) > 1:
+                    bait_name = f"{bait_name}_{i+1}"
+                if len(prey_sequences) > 1:
+                    prey_name = f"{prey_name}_{j+1}"
+                
+                # Create structure
+                structure = self.base_structure.copy()
+                structure["name"] = f"{bait_name}_{prey_name}"
+                structure["sequences"] = sequences
+                
+                # Create filename using sequence name for FASTA files
+                safe_bait = re.sub(r'[^\w\-_.]', '_', bait_name)
+                safe_prey = re.sub(r'[^\w\-_.]', '_', prey_name)
+                filename = f"{safe_bait}_{safe_prey}.json"
+                filepath = Path(output_dir) / filename
+                
+                # Write file
+                try:
+                    with open(filepath, 'w') as f:
+                        json.dump(structure, f, indent=2)
+                    print(f"Created: {filepath}")
+                    created_files.append(filepath)
+                except Exception as e:
+                    raise RuntimeError(f"Error writing file {filepath}: {e}")
+        
+        return created_files
+    
+    def create_fasta_for_combination(self, bait_entry: str, prey_entry: str, output_dir: Union[str, Path]) -> List[Path]:
+        """Create FASTA file(s) for a specific bait-prey combination (ColabFold mode)."""
+        try:
+            # Get sequences
+            bait_seqs = self.get_protein_sequence(bait_entry, mode="colabfold")
+            prey_seqs = self.get_protein_sequence(prey_entry, mode="colabfold")
+            
+            created_files = []
+            
+            # Convert single sequences to dict format for uniform handling
+            if isinstance(bait_seqs, str):
+                bait_name = self.get_entry_name(bait_entry)
+                bait_seqs = {bait_name: bait_seqs}
+            
+            if isinstance(prey_seqs, str):
+                prey_name = self.get_entry_name(prey_entry)
+                prey_seqs = {prey_name: prey_seqs}
+            
+            # Generate all combinations
+            for bait_header, bait_seq in bait_seqs.items():
+                for prey_header, prey_seq in prey_seqs.items():
+                    # Create concatenated sequence with : separator
+                    combined_sequence = f"{bait_seq}:{prey_seq}"
+                    
+                    # Create filename using sequence names
+                    safe_bait = re.sub(r'[^\w\-_.]', '_', bait_header)
+                    safe_prey = re.sub(r'[^\w\-_.]', '_', prey_header)
+                    filename = f"{safe_bait}_{safe_prey}.fasta"
+                    filepath = Path(output_dir) / filename
+                    
+                    # Write FASTA file
+                    with open(filepath, 'w') as f:
+                        f.write(f">{bait_header}_{prey_header}\n")
+                        # Write sequence with line breaks every 80 characters
+                        for i in range(0, len(combined_sequence), 80):
+                            f.write(combined_sequence[i:i+80] + '\n')
+                    
+                    print(f"Created: {filepath}")
+                    created_files.append(filepath)
+            
+            return created_files
+            
+        except Exception as e:
+            raise RuntimeError(f"Error creating FASTA file for combination {bait_entry}-{prey_entry}: {e}")
+    
+    def convert(self, tsv_file: Union[str, Path], output_dir: str = "output", mode: str = "alphafold3") -> List[Path]:
+        """Convert TSV to multiple AlphaFold3 JSON files or ColabFold FASTA files."""
         df = self.read_tsv(tsv_file)
         
         # Create output directory
@@ -263,35 +449,55 @@ class AF3Converter:
         if (df['bait'] == 0).sum() == 0:
             raise ValueError("No prey entries found (bait=0)")
         
+        # Validate entries for ColabFold mode
+        if mode == "colabfold":
+            invalid_entries = []
+            for entry in df['Entry']:
+                if not self.validate_colabfold_entry(entry):
+                    invalid_entries.append(entry)
+            
+            if invalid_entries:
+                raise ValueError(f"ColabFold mode only supports UniProt IDs and FASTA files with protein sequences. "
+                                f"Invalid entries: {invalid_entries}")
+        
         # Generate combinations
         combinations = self.generate_combinations(df)
         
         print(f"Found {len(combinations)} bait-prey combinations")
+        print(f"Mode: {mode}")
         
         # Process each combination
         created_files = []
         for i, (bait, prey) in enumerate(combinations, 1):
             print(f"Processing combination {i}/{len(combinations)}: {bait} (bait) + {prey} (prey)")
             
-            filepath = self.create_json_for_combination(bait, prey, output_dir)
-            if filepath:
-                created_files.append(filepath)
+            if mode == "alphafold3":
+                filepaths = self.create_json_for_combination(bait, prey, output_dir)
+                created_files.extend(filepaths)
+            elif mode == "colabfold":
+                filepaths = self.create_fasta_for_combination(bait, prey, output_dir)
+                created_files.extend(filepaths)
+            else:
+                raise ValueError(f"Unknown mode '{mode}'. Supported modes: alphafold3, colabfold")
             
             # Add small delay to be respectful to UniProt API
             if i % 10 == 0:
                 time.sleep(1)
         
-        print(f"\nCompleted! Created {len(created_files)} JSON files in '{output_dir}' directory")
+        file_type = "JSON" if mode == "alphafold3" else "FASTA"
+        print(f"\nCompleted! Created {len(created_files)} {file_type} files in '{output_dir}' directory")
         return created_files
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description='Convert TSV to AlphaFold3 JSON format')
+    parser = argparse.ArgumentParser(description='Convert TSV to AlphaFold3 JSON format or ColabFold FASTA format')
     parser.add_argument('input_tsv', help='Input TSV file')
     parser.add_argument('-o', '--output-dir', default='output', 
-                        help='Output directory for JSON files (default: output)')
+                        help='Output directory for JSON/FASTA files (default: output)')
     parser.add_argument('--workdir', default='.',
                         help='Work directory for relative paths (default: .)')
+    parser.add_argument('--mode', choices=['alphafold3', 'colabfold'], default='alphafold3',
+                        help='Output mode: alphafold3 (JSON files) or colabfold (FASTA files) (default: alphafold3)')
     
     args = parser.parse_args()
     
@@ -299,8 +505,8 @@ def main() -> None:
         print(f"Error: Input file {args.input_tsv} does not exist")
         sys.exit(1)
     
-    converter = AF3Converter(args.workdir)
-    converter.convert(args.input_tsv, args.output_dir)
+    converter = TSV2AFConverter(args.workdir)
+    converter.convert(args.input_tsv, args.output_dir, args.mode)
 
 
 if __name__ == "__main__":

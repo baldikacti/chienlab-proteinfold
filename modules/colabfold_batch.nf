@@ -13,9 +13,9 @@ process COLABFOLD_BATCH {
     val  outDir
 
     output:
-    path ("*")                  , emit: pdb
-    path ("*scores_rank*.json") , emit: json
-    path ("*.png")              , emit: multiqc
+    path ("*")                        , emit: pdb
+    path ("*_toprank.json")           , emit: json
+    path ("*.png")                    , emit: multiqc
 
     script:
     def args = task.ext.args ?: ''
@@ -28,5 +28,7 @@ process COLABFOLD_BATCH {
         --model-type ${cb_model} \\
         --data \$PWD \\
         $args
+    
+    ln -s *scores_rank_001_*.json ${accID}_toprank.json
     """
 }
