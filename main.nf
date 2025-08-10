@@ -39,8 +39,7 @@ workflow {
     if (params.mode == "colabfold") {
         COLABFOLD (
             ch_input,
-            params.colabfold_model_preset,
-            params.num_recycles_colabfold
+            params.num_recycle
         )
     } else if (params.mode == "alphafold3") {
         

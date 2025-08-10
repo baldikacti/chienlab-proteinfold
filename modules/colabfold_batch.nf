@@ -7,7 +7,6 @@ process COLABFOLD_BATCH {
 
     input:
     tuple val(accID), path(fasta)
-    val  cb_model
     path ("params/*")
     val  numRec
     val  outDir
@@ -24,8 +23,6 @@ process COLABFOLD_BATCH {
         ${fasta} \\
         \$PWD \\
         --num-recycle ${numRec} \\
-        --msa-mode 'mmseqs2_uniref_env' \\
-        --model-type ${cb_model} \\
         --data \$PWD \\
         $args
     

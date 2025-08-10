@@ -1,3 +1,13 @@
+# Version v0.8.0
+
+- Removes usage of reference file from ColabFold mode completely.
+
+- Cleans up preprocessing and ranking scripts for colabfold and alphafold3 modes.
+
+- Makes all the `colabfold_batch` paramaters available to the users.
+
+- Provides example `yaml` files for both alphafold3 and colabfold modes for cleaner usage.
+
 # Version v0.7.3
 
 - Adds `alphafold3` mode.
@@ -10,7 +20,7 @@
 
 - Allows for custom `--host_url` for ColabFold MSAserver.
 
-- `--org_ref` paramater is not optional.
+- `--org_ref` paramater is now optional.
 
 - Fixed certain edge cases.
 

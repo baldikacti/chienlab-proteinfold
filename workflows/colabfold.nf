@@ -14,8 +14,7 @@ include { RANK_AF                               } from '../modules/rank_af'
 workflow COLABFOLD {
     take:
     accession_file
-    colabfold_model_preset
-    num_recycles_colabfold
+    num_recycle
 
     main:
 
@@ -32,9 +31,8 @@ workflow COLABFOLD {
 
     COLABFOLD_BATCH(
             ch_fasta,
-            colabfold_model_preset,
             colabfold_cache,
-            num_recycles_colabfold,
+            num_recycle,
             "screen"
         )
 
@@ -56,7 +54,6 @@ workflow COLABFOLD {
         
         COLABFOLD_BATCH_TOP(
             ch_filtered_fasta,
-            colabfold_model_preset,
             colabfold_cache,
             20,
             "toprank"

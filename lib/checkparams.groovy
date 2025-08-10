@@ -4,7 +4,6 @@ def checkRequiredParams() {
     def missing = []
     if (params.mode == "colabfold") {
         if (!params.input) missing.add('--input')
-        if (!params.colabfold_model_preset) missing.add('--colabfold_model_preset') 
         if (!params.outdir) missing.add('--outdir')
     } else if (params.mode == "alphafold3") {
         if (!params.input) missing.add('--input')
