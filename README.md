@@ -1,3 +1,21 @@
+# Chienlab-proteinfold
+
+## Table of Contents
+
+<!-- TOC start (generated with https://github.com/derlin/bitdowntoc) -->
+
+- [Introduction](#introduction)
+- [Usage examples](#usage-examples)
+   * [Usage: ColabFold](#usage-colabfold)
+      + [Results](#results)
+         - [Directory Structure](#directory-structure)
+   * [Usage: Alphafold3](#usage-alphafold3)
+      + [Results](#results-1)
+         - [Directory Structure](#directory-structure-1)
+   * [Pipeline Summary](#pipeline-summary)
+
+<!-- TOC end -->
+
 # Introduction
 
 This is a convienience [Nextflow](https://www.nextflow.io/) pipeline for generating high-throughtput bait:pair protein structure predictions using [Colabfold](https://github.com/sokrypton/ColabFold), or [Alphafold3](https://github.com/google-deepmind/alphafold3). The pipeline simply accepts a `tsv` file of bait and prey sequences as described in the `Usage examples` section and produces structure predictions and a ranked result file using the `ipTM` values in `colabfold` more or `ranking_scores` in `alphafold3` mode. 
@@ -98,9 +116,9 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.8.0 \
 
 4. Submit to slurm with `sbatch main.sh`
 
-## Results
+### Results
 
-### Directory Structure
+#### Directory Structure
 
 Example results output directory structure can be found below. 
 
@@ -224,9 +242,9 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.8.0 \
 
 3. Submit to slurm with `sbatch main.sh`
 
-# Results
+### Results
 
-## Directory Structure
+#### Directory Structure
 
 Example results output directory structure can be found below. 
 
