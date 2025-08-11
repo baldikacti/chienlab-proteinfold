@@ -1,0 +1,48 @@
+# Mandatory
+mode: 'colabfold'
+input: 'tests/acclist.tsv'
+outdir: 'results/test_colab'
+
+# Optional
+top_rank: null
+
+# Options for colabfold_batch (null: provides defaults)
+## MSA arguments
+msa_mode: 'mmseqs2_uniref_env'
+pair_mode: null
+pair_strategy: null
+templates: null
+
+## Prediction arguments
+num_recycle: 3
+recycle_early_stop_tolerance: null
+num_ensemble: null
+num_seeds: null
+random_seed: null
+num_models: null
+model_type: 'alphafold2_multimer_v3'
+use_dropout: null
+max_seq: null
+max_extra_seq: null
+max_msa: null
+disable_cluster_profile: null
+
+## Relaxation arguments
+amber: null
+num_relax: null
+relax_max_iterations: null
+relax_tolerance: null
+relax_max_outer_iterations: null
+use_gpu_relax: null
+
+## Output arguments
+rank: null
+stop_at_score: null
+save_all: null
+save_recycles: null
+save_single_representations: null
+save_pair_representations: null
+
+## Advanced arguments
+host_url: 'http://cfold-db:8888'
+

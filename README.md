@@ -1,28 +1,16 @@
 # Introduction
 
-This is a convienience [Nextflow](https://www.nextflow.io/) pipeline for generating high-throughtput bait:pair protein structure predictions using [Colabfold](https://github.com/sokrypton/ColabFold), or [Alphafold3](https://github.com/google-deepmind/alphafold3). The pipeline simply accepts a `tsv` file of bait and prey sequences as described in the `Usage examples` section and produces structure predictions and a ranked result file using the `ipTM` values. 
+This is a convienience [Nextflow](https://www.nextflow.io/) pipeline for generating high-throughtput bait:pair protein structure predictions using [Colabfold](https://github.com/sokrypton/ColabFold), or [Alphafold3](https://github.com/google-deepmind/alphafold3). The pipeline simply accepts a `tsv` file of bait and prey sequences as described in the `Usage examples` section and produces structure predictions and a ranked result file using the `ipTM` values in `colabfold` more or `ranking_scores` in `alphafold3` mode. 
 
-This pipeline is in active development. All versions will be tagged with a version number, so you can use the `nextflow run -r <version>` to use specific versions of the pipeline.
+This pipeline is in active development. All versions will be tagged with a version number, so you can use the `nextflow run baldikacti/chienlab-proteinfold -r <version>` to use specific versions of the pipeline.
 
-This pipeline is meant for the [Unity HPC](https://unity.rc.umass.edu/index.php) cluster users using [Slurm](https://slurm.schedmd.com/documentation.html) scheduler. It can be adjusted to run locally or other schedulers relatively easily. The pipeline is inspired by several other open source projects like [nf-core/proteinfold](https://github.com/nf-core/proteinfold), and[AlphaPulldown](https://github.com/KosinskiLab/AlphaPulldown).
+This pipeline is meant for the [Unity HPC](https://unity.rc.umass.edu/index.php) cluster users using [Slurm](https://slurm.schedmd.com/documentation.html) scheduler. However, it can be adjusted to run locally or other schedulers relatively easily. The pipeline is inspired by several other open source projects like [nf-core/proteinfold](https://github.com/nf-core/proteinfold), and [AlphaPulldown](https://github.com/KosinskiLab/AlphaPulldown).
 
 # Usage examples
 
 ## Usage: ColabFold
 
-1. Download Proteome `tsv` file for your organism of interest from Uniprot. (Optional)
-    - Navigate to `https://www.uniprot.org/`
-    - Select `Proteomes` from the the dropdown menu from left side of the search bar
-    - Enter the name of your organism of interest
-    - From the results, click on the hyperlink under the **Entry** tab. (Ex. **UP000005640** for homo spiens)
-    - Scroll down to **Components** section
-    - Click `Download` top left of this section
-    - Select `Download only reviewed` or `Download reviewed and unreviewed`
-    - Select **Format** = `TSV`
-    - Select **Compressed** = `No`
-    - Optional: You can customize columns in the data by adding or substracting whatever you want. This will be automatically added the the `ranked_results` table at the end of the pipeline
-
-2. Create a new `tsv` file with `Entry` and `bait` columns as below. `Entry` column can be either a UniprotID or a relative path to a `fasta` file. `fasta` file/s can have multiple entries.
+1. Create a new `tsv` file with `Entry` and `bait` columns as below. `Entry` column can be either a UniprotID or a relative path to a `fasta` file. `fasta` file/s can have multiple entries.
 
 Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated. 
 
@@ -54,18 +42,11 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 
 - **mode** = Sets the prediction mode. [`colabfold`]
 
-- **num_recycles_colabfold** = Number of recycles to use in Colabfold. Higher the number better the prediction, but the slower the pipeline. [integer]
-
-
 **Optional arguments:**
-
-- **org_ref** = Path to the `tsv` file downloaded from Uniprot. [`/path/to/uniprot_organism_reference.tsv`]
 
 - **top_rank** = Number of top ranked (by `ipTM`) `bait:pair` predictions to pick for rerunning with 20 recycles for better prediction quality. [integer]
 
-- **APPTAINER_CACHEDIR** = Absolute path to where `apptainer` will cache the containers used in the pipeline. [`/path/to/.apptainer/cache`]
-
-- Additional optional paramaters can be found in `nextflow.config` file.
+- Additional optional paramaters can be found in `examples/example_colab.yaml` file.
 
 
 **Nextflow arguments:**
@@ -79,7 +60,7 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 ```bash
 #!/usr/bin/bash
 #SBATCH --job-name=chienlab-proteinfold     # Job name
-#SBATCH --partition=cpu                     # Partition (queue) name
+#SBATCH --partition=workflow,cpu            # Partition (queue) name
 #SBATCH -c 2                                # Number of CPUs
 #SBATCH --nodes=1                           # Number of nodes
 #SBATCH --mem=10gb                          # Job memory request
@@ -95,14 +76,22 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.7.4 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.8.0 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
-      --org_ref /path/to/organism_reference.tsv \
       --mode colabfold \
-      --num_recycles_colabfold 5 \ 
-      --top_rank 2 \
-      --colabfold_model_preset "alphafold2_multimer_v3" \
+      --top_rank 10 \
+      -profile unity \
+      -resume
+```
+
+**OR**
+
+You can provide all the options from a `.yaml` file.
+
+```bash
+nextflow run baldikacti/chienlab-proteinfold -r v0.8.0 \
+      -params-file examples/example_colab.yaml \
       -profile unity \
       -resume
 ```
@@ -119,33 +108,32 @@ Example results output directory structure can be found below.
 
 - *colabfold*: Contains the `ColabFold` prediction results for each `bait:prey` pair.
 
+- *preprocessing*: Contains all `bait:prey` combined FASTA files.
+
 - *screen*: Contains the prediction pairs based on the initial screen using the recycle count from `num_recycles_colabfold` paramater
 
 - *toprank*: Contains the prediction pairs from top ranked pairs based on `ipTM` score with 20 recycles. `top_rank` flag sets how many pairs should be rerun with 20 recycles.
 
-- *fasta*: Contains all `bait:prey` combined FASTA files.
-
 - *pipeline_info*: Contains pipeline execution summaries
 
-- *ranked_results*: Contains the `ranked_results.tsv` file that contains ranked (by `ipTM`) `bait:prey` predictions and optional protein information.
+- *colabfold_ranked_results.tsv*: File that contains ranked (by `ipTM`) `bait:prey` predictions.
 
 ```bash
 <outdir>
 ├── colabfold
+│   ├── preprocessing
+│   │   ├── # Paired FASTA files
+│   │   ...
 │   ├── screen
 │   │   ├── # Directories for each bait:prey pair with ColabFold results
 │   │   ...
 │   └── toprank
 │       ├── # Directories for each bait:prey pair with ColabFold results from top ranked pairs
 │       ...
-├── fasta
-│   ├── # Paired FASTA files
-│   ...
 ├── pipeline_info
 │   ├── # Execution summaries (html, txt)
 │   ...
-└── ranked_results
-    └── ranked_results.tsv
+└── colabfold_ranked_results.tsv
 ```
 
 ## Usage: Alphafold3
@@ -185,9 +173,7 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 
 - **inf_batch** = Number used for batching number of inference runs per GPU. Used for efficiency. [20]
 
-- **APPTAINER_CACHEDIR** = Absolute path to where `apptainer` will cache the containers used in the pipeline. [`/path/to/.apptainer/cache`]
-
-- Additional optional paramaters can be found in `nextflow.config` file.
+- Additional optional paramaters can be found in `examples/example_af3.yaml` file.
 
 
 **Nextflow arguments:**
@@ -217,12 +203,21 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.7.4 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.8.0 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --model_dir /path/to/model/params \
       --db_dir /path/to/db \
       --mode alphafold3 \
+      -profile unity \
+      -resume
+```
+
+**OR**
+
+```bash
+nextflow run baldikacti/chienlab-proteinfold -r v0.8.0 \
+      -params-file examples/example_af3.yaml \
       -profile unity \
       -resume
 ```
@@ -239,7 +234,7 @@ Example results output directory structure can be found below.
 
 - *alphafold3*: Contains the `Alphafold3` prediction results for each `bait:prey` pair.
 
-- *input_json*: Contains all `bait:prey` combined JSON files structured in Alphafold3 required structure.
+- *preprocessing*: Contains all `bait:prey` combined JSON files structured in Alphafold3 required structure.
 
 - *msa*: Contains the MSAs generated from input JSON files
 
@@ -247,12 +242,12 @@ Example results output directory structure can be found below.
 
 - *pipeline_info*: Contains pipeline execution summaries
 
-- *ranked_results*: Contains the `ranked_results.tsv` file that contains ranked (by `ipTM`) `bait:prey` predictions.
+- *alphafold3_ranked_results.tsv*: File that contains ranked (by `ranking_scores`) `bait:prey` predictions.
 
 ```bash
 <outdir>
-├── colabfold
-│   ├── input_json # Contains the generated input JSON files for alphafold3
+├── alphafold3
+│   ├── preprocessing # Contains the generated input JSON files for alphafold3
 │   │   ...
 │   ├── msa # Contains the MSAs generated from input JSON files
 │   │   ...
@@ -261,8 +256,7 @@ Example results output directory structure can be found below.
 ├── pipeline_info
 │   ├── # Execution summaries (html, txt)
 │   ...
-└── ranked_results
-    └── ranked_results.tsv
+└── alphafold3_ranked_results.tsv
 ```
 
 ## Pipeline Summary

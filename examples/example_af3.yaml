@@ -1,0 +1,14 @@
+# Mandatory paramaters
+mode: 'alphafold3'
+input: 'tests/acclist_af3.tsv'
+outdir: 'results/test_af3'
+model_dir: 'tests'
+db_dir: '/datasets/bio/alphafold3'
+
+# Alphafold3 paramaters
+inf_batch: 20
+max_template_date: '2021-09-30'
+num_recycles: 10
+conformer_max_iterations: null
+save_distogram: null
+save_embeddings: null
