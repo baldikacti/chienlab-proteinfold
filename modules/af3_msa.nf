@@ -1,5 +1,6 @@
 process AF3_MSA {
-    label "process_high"
+    label 'process_high'
+    label 'error_ignore'
     publishDir "${params.outdir}/${params.mode}/msa", mode: 'copy', pattern: "*_data.json"
 
     input:

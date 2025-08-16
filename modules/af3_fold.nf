@@ -1,5 +1,6 @@
 process AF3_FOLD {
-    label "gpu_af3"
+    label 'gpu'
+    label 'error_ignore'
     publishDir "${params.outdir}/${params.mode}", mode: 'copy', pattern: "folds/*"
 
     input:
