@@ -1,0 +1,31 @@
+# Mandatory params
+mode: 'boltz'
+model: 'boltz2'
+input: 'examples/acclist_af3.tsv'
+outdir: 'results/test_boltz'
+
+# Number of inference jobs to batch per GPU (Default: 20)
+inf_batch: 20
+
+# Optional Boltz arguments (Provides defaults)
+use_msa_server: true
+msa_server_url: 'http://cfold-db:8888'
+recycling_steps: 10
+sampling_steps: 200
+diffusion_samples: 25
+step_scale: null
+write_full_pae: true
+write_full_pde: false
+output_format: 'mmcif'
+seed: null
+msa_pairing_strategy: 'greedy'
+use_potentials: false
+method: null
+affinity_mw_correction: null
+sampling_steps_affinity: 200
+diffusion_samples_affinity: 5
+max_msa_seqs: 8192
+subsample_msa: true
+num_subsampled_msa: 1024
+no_kernels: true
+write_embeddings: false

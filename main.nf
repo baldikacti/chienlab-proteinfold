@@ -15,6 +15,7 @@
 
 include { COLABFOLD             } from './workflows/colabfold'
 include { ALPHAFOLD3            } from './workflows/alphafold3'
+include { BOLTZ                 } from './workflows/boltz'
 include { checkRequiredParams   } from './lib/checkparams.groovy'
 
 
@@ -51,6 +52,13 @@ workflow {
             ch_af3_db,
             ch_model_dir
         )
+    } else if (params.mode == "boltz") {
+
+        BOLTZ (
+            ch_input,
+            params.model
+        )
+
     }
 
 }

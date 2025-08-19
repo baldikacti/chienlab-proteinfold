@@ -1,3 +1,9 @@
+# Version v0.9.0
+
+- Adds `boltz` mode for pair prediction.
+
+- Fixes issue in `alphafold3` mode when the input FASTAs had multiple inputs, the outputted filenames only inherited the name of the first entry.
+
 # Version v0.8.0
 
 - Removes usage of reference file from ColabFold mode completely.

@@ -63,6 +63,24 @@ def process_json_files(input_dir: str, output_file: str, mode: str):
                     'ranking_score': data.get('ranking_score', '')
                 }
                 headers = ['foldid', 'fraction_disordered', 'has_clash', 'ptm', 'iptm', 'ranking_score']
+            elif mode == "boltz":
+                # Extract basename without extension for foldid
+                foldid = Path(json_file).stem.replace("confidence_", "").replace("_model_0", "")
+
+                # Extract required fields
+                row = {
+                    'foldid': foldid,
+                    'complex_plddt': data.get('complex_plddt', ''),
+                    'complex_iplddt': data.get('complex_iplddt', ''),
+                    'complex_pde': data.get('complex_pde', ''),
+                    'complex_ipde': data.get('complex_ipde', ''),
+                    'protein_iptm': data.get('protein_iptm', ''),
+                    'ligand_iptm': data.get('ligand_iptm', ''),
+                    'ptm': data.get('ptm', ''),
+                    'iptm': data.get('iptm', ''),
+                    'confidence_score': data.get('confidence_score', '')
+                }
+                headers = ['foldid', 'complex_plddt', 'complex_iplddt', 'complex_pde', 'complex_ipde', 'protein_iptm', 'ligand_iptm', 'ptm', 'iptm', 'confidence_score']
             
             data_rows.append(row)
             
@@ -111,7 +129,7 @@ def main():
     parser.add_argument('--output', '-o', default='results.tsv',
                         help='Output TSV filename (default: results.tsv)')
     parser.add_argument('--mode',
-                        help='Set the input format. Options: colabfold, alphafold3')
+                        help='Set the input format. Options: colabfold, alphafold3, boltz')
     
     args = parser.parse_args()
     

@@ -12,13 +12,16 @@
    * [Usage: Alphafold3](#usage-alphafold3)
       + [Results](#results-1)
          - [Directory Structure](#directory-structure-1)
+   * [Usage: Boltz](#usage-boltz)
+     + [Results](#results-2)
+         - [Directory Structure](#directory-structure-2)
    * [Pipeline Summary](#pipeline-summary)
 
 <!-- TOC end -->
 
 # Introduction
 
-This is a convienience [Nextflow](https://www.nextflow.io/) pipeline for generating high-throughtput bait:pair protein structure predictions using [Colabfold](https://github.com/sokrypton/ColabFold), or [Alphafold3](https://github.com/google-deepmind/alphafold3). The pipeline simply accepts a `tsv` file of bait and prey sequences as described in the `Usage examples` section and produces structure predictions and a ranked result file using the `ipTM` values in `colabfold` more or `ranking_scores` in `alphafold3` mode. 
+This is a convienience [Nextflow](https://www.nextflow.io/) pipeline for generating high-throughtput bait:pair protein structure predictions using [Colabfold](https://github.com/sokrypton/ColabFold), [Alphafold3](https://github.com/google-deepmind/alphafold3), or [Boltz](https://github.com/jwohlwend/boltz/tree/main). The pipeline simply accepts a `tsv` file of bait and prey sequences as described in the `Usage examples` section and produces structure predictions and a ranked result file using the `ipTM` values in `colabfold` mode, `ranking_scores` in `alphafold3` mode, or `confidence_score` in `boltz` mode. 
 
 This pipeline is in active development. All versions will be tagged with a version number, so you can use the `nextflow run baldikacti/chienlab-proteinfold -r <version>` to use specific versions of the pipeline.
 
@@ -94,7 +97,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.8.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --mode colabfold \
@@ -108,7 +111,7 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.8.0 \
 You can provide all the options from a `.yaml` file.
 
 ```bash
-nextflow run baldikacti/chienlab-proteinfold -r v0.8.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
       -params-file examples/example_colab.yaml \
       -profile unity \
       -resume
@@ -221,7 +224,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.8.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --model_dir /path/to/model/params \
@@ -234,7 +237,7 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.8.0 \
 **OR**
 
 ```bash
-nextflow run baldikacti/chienlab-proteinfold -r v0.8.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
       -params-file examples/example_af3.yaml \
       -profile unity \
       -resume
@@ -277,11 +280,131 @@ Example results output directory structure can be found below.
 └── alphafold3_ranked_results.tsv
 ```
 
+## Usage: Boltz
+
+1. Create a new `tsv` file with `Entry` and `bait` columns as below. `Entry` column can be a UniprotID, a relative path to a `fasta` file, a `CCD` code prefixed by `CCD:`, or a `SMILES` code prefixed by `SMILES:`.
+
+Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated. 
+
+**acclist.tsv**
+| Entry         | bait  |
+| :-----------: | :--:  |
+| CCD:MG        | 1     |
+| P25685        | 0     |
+| ref/my.fasta  | 0     |
+| Q02790        | 0     |
+
+2. Example submission script below.
+
+**Mandatory arguments:**
+
+- **input** = Path to `tsv` file. [`/path/to/input.tsv`]
+
+- **output** = Path to result directory. [`/path/to/results`]
+    
+- **mode** = Sets the prediction mode. [`boltz`]
+
+- **model** = Selects the Boltz model to use. Options: `boltz1` or `boltz2`. [`boltz2`]
+
+
+**Optional arguments:**
+
+- **inf_batch** = Number used for batching number of inference runs per GPU. Used for efficiency. [20]
+
+- Additional optional paramaters can be found in `examples/example_boltz.yaml` file.
+
+- Full description of all paramaters that can be passed to `boltz predict` can be found [here.](https://github.com/jwohlwend/boltz/blob/main/docs/prediction.md#options)
+
+
+**Nextflow arguments:**
+
+- **profile** = Set the dependency management profile. [Institution/docker/singularity/apptainer]
+
+- **resume** = Enables the pipeline to be used repeatedly. The pipeline will only run incomplete processes when rerun with the same inputs.
+
+
+**main.sh**
+```bash
+#!/usr/bin/bash
+#SBATCH --job-name=chienlab-proteinfold     # Job name
+#SBATCH --partition=workflow,cpu            # Partition (queue) name
+#SBATCH -c 2                                # Number of CPUs
+#SBATCH --nodes=1                           # Number of nodes
+#SBATCH --mem=10gb                          # Job memory request
+#SBATCH --time=14-00:00:00                  # Time limit days-hrs:min:sec
+#SBATCH -q long
+#SBATCH --output=logs/chienlab-proteinfold_%j.log
+
+module load nextflow/24.10.3 apptainer/latest
+
+APPTAINER_CACHEDIR=/path/to/.apptainer/cache  # Path to cache directory for apptainer cache
+
+export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
+export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
+export NXF_OPTS="-Xms1G -Xmx8G"
+
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
+      --input /path/to/acclist.tsv \
+      --outdir /path/to/results \
+      --mode boltz \
+      --model boltz2 \
+      --msa_server_url 'http://cfold-db:8888' \
+      -profile unity \
+      -resume
+```
+
+**OR**
+
+```bash
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
+      -params-file examples/example_boltz.yaml \
+      -profile unity \
+      -resume
+```
+
+3. Submit to slurm with `sbatch main.sh`
+
+### Results
+
+#### Directory Structure
+
+Example results output directory structure can be found below. 
+
+**Legend**
+
+- *boltz*: Contains the `Boltz` prediction results for each `bait:prey` pair.
+
+- *preprocessing*: Contains all `bait:prey` combined JSON files structured in Alphafold3 required structure.
+
+- *folds*: Contains directories for each inference result
+
+- *pipeline_info*: Contains pipeline execution summaries
+
+- *boltz_ranked_results.tsv*: File that contains ranked (by `confidence_score`) `bait:prey` predictions.
+
+```bash
+<outdir>
+├── boltz
+│   ├── preprocessing # Contains the generated input JSON files for alphafold3
+│   │   ...
+│   ├── folds
+│       ├── msa # Contains MSA results for each result
+│       │   ...
+│       ├── predictions # Contains directories for each inference result
+│       │   ...
+│       └── processed # Contains processed data used during execution
+│           ...
+├── pipeline_info
+│   ├── # Execution summaries (html, txt)
+│   ...
+└── boltz_ranked_results.tsv
+```
+
 ## Pipeline Summary
 
 When a run successfully finishes, the `.log` file (set by `#SBATCH --output=/path/to/mylog_%j.log`) will contain a short summary of total execution time, successful and failed jobs. (Check `pipeline_info` directory for detailed execution summaries.)
 
-The pipeline is set up in a way if a job fails, it is retried with higher resources up to two times and `ignored` on the 3 failed attempt. Due to this, if you see a number next to the `Ignored` section in the summary it means that that number of predictions completely failed to produce results. This is most likely due to the size limitation of `ColabFold` or `Alphafol3`.
+The pipeline is set up in a way if a job fails, it is retried with higher resources up to two times and `ignored` on the 3 failed attempt. Due to this, if you see a number next to the `Ignored` section in the summary it means that that number of predictions completely failed to produce results. This is most likely due to the size limitation of `ColabFold`, `Alphafol3`, or `Boltz`.
 
 ```bash
 Completed at: <Date and time when the pipeline finished>

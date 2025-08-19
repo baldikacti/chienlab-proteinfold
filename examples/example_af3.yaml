@@ -1,8 +1,8 @@
 # Mandatory paramaters
 mode: 'alphafold3'
-input: 'tests/acclist_af3.tsv'
-outdir: 'results/test_af3'
-model_dir: 'tests'
+input: '/path/to/input.tsv'
+outdir: '/path/to/results'
+model_dir: '/path/to/model/dir'
 db_dir: '/datasets/bio/alphafold3'
 
 # Alphafold3 paramaters
