@@ -374,7 +374,7 @@ Example results output directory structure can be found below.
 
 - *boltz*: Contains the `Boltz` prediction results for each `bait:prey` pair.
 
-- *preprocessing*: Contains all `bait:prey` combined JSON files structured in Alphafold3 required structure.
+- *preprocessing*: Contains all `bait:prey` combined FASTA files structured in Boltz required structure.
 
 - *folds*: Contains directories for each inference result
 
