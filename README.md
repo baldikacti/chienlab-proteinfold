@@ -97,7 +97,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.1 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --mode colabfold \
@@ -111,7 +111,7 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
 You can provide all the options from a `.yaml` file.
 
 ```bash
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.1 \
       -params-file examples/example_colab.yaml \
       -profile unity \
       -resume
@@ -224,7 +224,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.1 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --model_dir /path/to/model/params \
@@ -237,7 +237,7 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
 **OR**
 
 ```bash
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.1 \
       -params-file examples/example_af3.yaml \
       -profile unity \
       -resume
@@ -343,7 +343,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.1 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --mode boltz \
@@ -356,7 +356,7 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
 **OR**
 
 ```bash
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.0 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.1 \
       -params-file examples/example_boltz.yaml \
       -profile unity \
       -resume
