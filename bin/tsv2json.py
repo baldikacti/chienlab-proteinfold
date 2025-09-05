@@ -13,7 +13,10 @@ import time
 from pathlib import Path
 import re
 from typing import Dict, List, Tuple, Optional, Any, Union
+import logging
 
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class TSV2AFConverter:
     def __init__(self, workdir: str = ".") -> None:
@@ -29,6 +32,8 @@ class TSV2AFConverter:
         self.session.headers.update({
             'User-Agent': 'AF3Converter/1.0 (Python script for AlphaFold3 conversion)'
         })
+        # Cache for UniProt sequences to avoid duplicate requests
+        self.sequence_cache: Dict[str, Optional[str]] = {}
     
     def read_tsv(self, tsv_file: Union[str, Path]) -> pd.DataFrame:
         """Read the input TSV file."""
@@ -39,25 +44,138 @@ class TSV2AFConverter:
                 raise ValueError("TSV must contain 'Entry' and 'Bait' columns")
             return df
         except Exception as e:
-            print(f"Error reading TSV file: {e}")
+            logging.error(f"Error reading TSV file: {e}")
             sys.exit(1)
     
-    def fetch_uniprot_sequence(self, uniprot_id: str) -> Optional[str]:
-        """Fetch sequence from UniProt."""
-        url = f"https://rest.uniprot.org/uniprotkb/{uniprot_id}.fasta"
+    def fetch_uniprot_sequences_batch(self, uniprot_ids: List[str]) -> Dict[str, Optional[str]]:
+        """Fetch multiple sequences using UniProt's batch API."""
+        # Check cache first
+        uncached_ids = []
+        results = {}
         
-        try:
-            response = self.session.get(url, timeout=10)
-            if response.status_code == 200:
-                lines = response.text.strip().split('\n')
-                sequence = ''.join(lines[1:])  # Skip header line
-                return sequence
+        for uniprot_id in uniprot_ids:
+            if uniprot_id in self.sequence_cache:
+                results[uniprot_id] = self.sequence_cache[uniprot_id]
             else:
-                print(f"Warning: Could not fetch UniProt sequence for {uniprot_id}")
-                return None
-        except Exception as e:
-            print(f"Error fetching UniProt sequence for {uniprot_id}: {e}")
-            return None
+                uncached_ids.append(uniprot_id)
+        
+        if not uncached_ids:
+            return results
+        
+        logging.info(f"Fetching {len(uncached_ids)} UniProt sequences in batches...")
+        
+        # Split into batches (UniProt recommends max 100 IDs per request)
+        batch_size = 100
+        
+        for i in range(0, len(uncached_ids), batch_size):
+            batch_ids = uncached_ids[i:i + batch_size]
+            batch_results = self._fetch_batch(batch_ids)
+            results.update(batch_results)
+            
+            # Update cache
+            self.sequence_cache.update(batch_results)
+            
+            # Rate limiting between batches
+            if i + batch_size < len(uncached_ids):  # Don't sleep after last batch
+                time.sleep(1)
+        
+        return results
+
+    def _fetch_batch(self, uniprot_ids: List[str]) -> Dict[str, Optional[str]]:
+        """Fetch a single batch of sequences."""
+        url = "https://rest.uniprot.org/uniprotkb/stream"
+        
+        params = {
+            'query': f'accession:{" OR accession:".join(uniprot_ids)}',
+            'format': 'fasta',
+            'compressed': 'false'
+        }
+        
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                response = self.session.get(url, params=params, timeout=30)
+                if response.status_code == 200:
+                    batch_sequences = self._parse_fasta_batch(response.text)
+                    
+                    # Ensure all requested IDs are in results (even if None)
+                    results = {}
+                    for uniprot_id in uniprot_ids:
+                        results[uniprot_id] = batch_sequences.get(uniprot_id)
+                        if results[uniprot_id] is None:
+                            logging.warning(f"UniProt sequence not found for {uniprot_id}")
+                    
+                    return results
+                elif response.status_code == 429:  # Rate limited
+                    wait_time = 2 ** attempt
+                    logging.warning(f"Rate limited, waiting {wait_time} seconds...")
+                    time.sleep(wait_time)
+                    continue
+                else:
+                    logging.error(f"Batch request failed with status {response.status_code}")
+                    break
+            except requests.RequestException as e:
+                logging.error(f"Request error in batch (attempt {attempt + 1}): {e}")
+                if attempt < max_retries - 1:
+                    time.sleep(1)
+        
+        # Return dict with None values for all IDs if batch failed
+        return {uniprot_id: None for uniprot_id in uniprot_ids}
+
+    def _parse_fasta_batch(self, fasta_text: str) -> Dict[str, str]:
+        """Parse FASTA text into dictionary of ID -> sequence."""
+        sequences = {}
+        current_id = None
+        current_seq = []
+        
+        for line in fasta_text.strip().split('\n'):
+            if line.startswith('>'):
+                if current_id:
+                    sequences[current_id] = ''.join(current_seq)
+                # Extract UniProt ID from header (e.g., >sp|P12345|PROTEIN_NAME)
+                header_parts = line.split('|')
+                if len(header_parts) >= 2:
+                    current_id = header_parts[1]
+                else:
+                    # Fallback: use first part after >
+                    current_id = line[1:].split()[0]
+                current_seq = []
+            elif line.strip():  # Non-empty sequence line
+                current_seq.append(line.strip())
+        
+        if current_id:
+            sequences[current_id] = ''.join(current_seq)
+        
+        return sequences
+    
+    def fetch_uniprot_sequence(self, uniprot_id: str) -> Optional[str]:
+        """Fetch sequence from UniProt (fallback method for single requests)."""
+        # Check cache first
+        if uniprot_id in self.sequence_cache:
+            return self.sequence_cache[uniprot_id]
+        
+        # Use batch method for single ID
+        results = self.fetch_uniprot_sequences_batch([uniprot_id])
+        return results.get(uniprot_id)
+    
+    def collect_uniprot_ids(self, df: pd.DataFrame) -> List[str]:
+        """Collect all UniProt IDs from the dataframe for batch fetching."""
+        uniprot_ids = []
+        
+        for entry in df['entry'].unique():
+            if self.get_entry_type(entry) == 'uniprot':
+                uniprot_ids.append(entry)
+        
+        return list(set(uniprot_ids))  # Remove duplicates
+    
+    def prefetch_uniprot_sequences(self, df: pd.DataFrame) -> None:
+        """Pre-fetch all UniProt sequences in batches."""
+        uniprot_ids = self.collect_uniprot_ids(df)
+        
+        if uniprot_ids:
+            logging.info(f"Pre-fetching {len(uniprot_ids)} unique UniProt sequences...")
+            self.fetch_uniprot_sequences_batch(uniprot_ids)
+            logging.info("Pre-fetching complete!")
     
     def read_fasta(self, fasta_file: Union[str, Path]) -> Union[str, Dict[str, str]]:
         """Read a FASTA file and return the sequence(s). 
@@ -312,6 +430,7 @@ class TSV2AFConverter:
         else:
             # For non-FASTA entries, use the entry itself (e.g., UniProt ID)
             return entry
+    
     def get_entry_name_for_sequence(self, entry: str, sequence_index: int = 0) -> str:
         """Get the name to use for a specific sequence in a FASTA entry."""
         entry_type = self.get_entry_type(entry)
@@ -399,7 +518,6 @@ class TSV2AFConverter:
                 try:
                     with open(filepath, 'w') as f:
                         json.dump(structure, f, indent=2)
-                    print(f"Created: {filepath}")
                     created_files.append(filepath)
                 except Exception as e:
                     raise RuntimeError(f"Error writing file {filepath}: {e}")
@@ -443,7 +561,6 @@ class TSV2AFConverter:
                         for i in range(0, len(combined_sequence), 80):
                             f.write(combined_sequence[i:i+80] + '\n')
                     
-                    print(f"Created: {filepath}")
                     created_files.append(filepath)
             
             return created_files
@@ -550,7 +667,6 @@ class TSV2AFConverter:
                     with open(filepath, 'w') as f:
                         f.write('\n'.join(fasta_content) + '\n')
 
-                    print(f"Created: {filepath}")
                     created_files.append(filepath)
                 except Exception as e:
                     raise RuntimeError(f"Error writing file {filepath}: {e}")
@@ -582,16 +698,18 @@ class TSV2AFConverter:
                 raise ValueError(f"ColabFold mode only supports UniProt IDs and FASTA files with protein sequences. "
                                 f"Invalid entries: {invalid_entries}")
         
+        # Pre-fetch all UniProt sequences in batches
+        self.prefetch_uniprot_sequences(df)
+        
         # Generate combinations
         combinations = self.generate_combinations(df)
         
-        print(f"Found {len(combinations)} bait-prey combinations")
-        print(f"Mode: {mode}")
+        logging.info(f"Found {len(combinations)} bait-prey combinations")
+        logging.info(f"Mode: {mode}")
         
         # Process each combination
         created_files = []
         for i, (bait, prey) in enumerate(combinations, 1):
-            print(f"Processing combination {i}/{len(combinations)}: {bait} (bait) + {prey} (prey)")
             
             if mode == "alphafold3":
                 filepaths = self.create_json_for_combination(bait, prey, output_dir)
@@ -603,14 +721,15 @@ class TSV2AFConverter:
                 filepaths = self.create_fasta_for_boltz_combination(bait, prey, output_dir)
                 created_files.extend(filepaths)
             else:
-                raise ValueError(f"Unknown mode '{mode}'. Supported modes: alphafold3, colabfold")
+                raise ValueError(f"Unknown mode '{mode}'. Supported modes: alphafold3, colabfold, boltz")
             
-            # Add small delay to be respectful to UniProt API
-            if i % 10 == 0:
-                time.sleep(1)
+            # Minimal delay - no longer needed since we're using batch API
+            # Only add delay every 50 combinations for very large datasets
+            if i % 50 == 0:
+                time.sleep(0.1)
         
         file_type = "JSON" if mode == "alphafold3" else "FASTA"
-        print(f"\nCompleted! Created {len(created_files)} {file_type} files in '{output_dir}' directory")
+        logging.info(f"Completed! Created {len(created_files)} {file_type} files in '{output_dir}' directory")
         return created_files
 
 
@@ -627,7 +746,7 @@ def main() -> None:
     args = parser.parse_args()
     
     if not Path(args.input_tsv).exists():
-        print(f"Error: Input file {args.input_tsv} does not exist")
+        logging.error(f"Error: Input file {args.input_tsv} does not exist")
         sys.exit(1)
     
     converter = TSV2AFConverter(args.workdir)
