@@ -1,3 +1,17 @@
+# Version v0.9.2
+
+- Update `af3_*` modules to use a container instead of a module.
+
+- Added `chain_pair_pae_min` column to Alphafold3 ranked TSV file.
+
+- Added `example.config` for an example configuration for different HPC clusters
+
+- Cleaned up `base.config`
+
+# Version v0.9.1
+
+- Improves pulling sequences from Uniprot by adding fallback mechanisms, retries, and batch pulling.
+
 # Version v0.9.0
 
 - Adds `boltz` mode for pair prediction.
