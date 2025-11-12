@@ -3,6 +3,8 @@ process AF3_MSA {
     label 'error_ignore'
     publishDir "${params.outdir}/${params.mode}/msa", mode: 'copy', pattern: "*_data.json"
 
+    container "docker://baldikacti/alphafold3:latest"
+
     input:
     path(json)
     path af3_db
@@ -13,7 +15,6 @@ process AF3_MSA {
     script:
     def name = json.baseName
     """
-    module load alphafold3/latest
     run_alphafold.py --norun_inference --json_path $json --output_dir msa --db_dir $af3_db
     ln -s \$(find msa -name "*.json" -type f) ${name}_data.json
     """
