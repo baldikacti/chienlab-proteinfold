@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
 """
-Script to read AF3 summary confidence scores from JSON files and output a single ranked TSV file.
+Script to read summary confidence scores from Colabfold, Boltz, or Alphafold3 JSON files and output a single ranked TSV file.
 Reads all *.json files in the current directory and outputs a single TSV file
-with columns: foldid, fraction_disordered, has_clash, ptm, iptm, ranking_score
-Results are sorted by ranking_score in descending order.
+Results are sorted by either ranking_score(AF3), ipTM(colabfold), or confidence_score(Boltz) in descending order.
 """
 
 import json
@@ -12,10 +11,11 @@ import os
 import sys
 from pathlib import Path
 
+
 def process_json_files(input_dir: str, output_file: str, mode: str):
     """
     Process all JSON files in the specified directory and create a TSV file.
-    
+
     Args:
         input_dir (str): Directory to search for JSON files (default: current directory)
         output_file (str): Output TSV filename (default: results.tsv)
@@ -23,75 +23,101 @@ def process_json_files(input_dir: str, output_file: str, mode: str):
     # Find all JSON files
     json_pattern = os.path.join(input_dir, "*.json")
     json_files = glob.glob(json_pattern)
-    
+
     if not json_files:
         print(f"No JSON files found in {input_dir}")
         return
-    
+
     print(f"Found {len(json_files)} JSON files")
-    
+
     # Store data for all files
     data_rows = []
-    
+
     # Process each JSON file
     for json_file in json_files:
         try:
-            with open(json_file, 'r') as f:
+            with open(json_file, "r") as f:
                 data = json.load(f)
-            
+
             if mode == "colabfold":
                 # Extract basename without extension and the suffix for foldid
                 foldid = Path(json_file).stem.removesuffix("_toprank")
 
                 # Extract required fields
-                row = {
-                    'foldid': foldid,
-                    'iptm': data.get('iptm', '')
-                }
-                headers = ['foldid', 'iptm']
+                row = {"foldid": foldid, "iptm": data.get("iptm", "")}
+                headers = ["foldid", "iptm"]
             elif mode == "alphafold3":
                 # Extract basename without extension for foldid
                 foldid = Path(json_file).stem
 
+                # Mean of chain_pair_pae_min (2nd value of 1st array and 1st value o 2nd array)
+                chain_pair_pae_min = data.get("chain_pair_pae_min", "")
+                chain_pair_pae_min_mean = (
+                    chain_pair_pae_min[0][1] + chain_pair_pae_min[1][0]
+                ) / 2
                 # Extract required fields
                 row = {
-                    'foldid': foldid,
-                    'fraction_disordered': data.get('fraction_disordered', ''),
-                    'has_clash': data.get('has_clash', ''),
-                    'ptm': data.get('ptm', ''),
-                    'iptm': data.get('iptm', ''),
-                    'ranking_score': data.get('ranking_score', '')
+                    "foldid": foldid,
+                    "chain_pair_pae_min": chain_pair_pae_min_mean,
+                    "fraction_disordered": data.get("fraction_disordered", ""),
+                    "has_clash": data.get("has_clash", ""),
+                    "ptm": data.get("ptm", ""),
+                    "iptm": data.get("iptm", ""),
+                    "ranking_score": data.get("ranking_score", ""),
                 }
-                headers = ['foldid', 'fraction_disordered', 'has_clash', 'ptm', 'iptm', 'ranking_score']
+                headers = [
+                    "foldid",
+                    "chain_pair_pae_min",
+                    "fraction_disordered",
+                    "has_clash",
+                    "ptm",
+                    "iptm",
+                    "ranking_score",
+                ]
             elif mode == "boltz":
                 # Extract basename without extension for foldid
-                foldid = Path(json_file).stem.replace("confidence_", "").replace("_model_0", "")
+                foldid = (
+                    Path(json_file)
+                    .stem.replace("confidence_", "")
+                    .replace("_model_0", "")
+                )
 
                 # Extract required fields
                 row = {
-                    'foldid': foldid,
-                    'complex_plddt': data.get('complex_plddt', ''),
-                    'complex_iplddt': data.get('complex_iplddt', ''),
-                    'complex_pde': data.get('complex_pde', ''),
-                    'complex_ipde': data.get('complex_ipde', ''),
-                    'protein_iptm': data.get('protein_iptm', ''),
-                    'ligand_iptm': data.get('ligand_iptm', ''),
-                    'ptm': data.get('ptm', ''),
-                    'iptm': data.get('iptm', ''),
-                    'confidence_score': data.get('confidence_score', '')
+                    "foldid": foldid,
+                    "complex_plddt": data.get("complex_plddt", ""),
+                    "complex_iplddt": data.get("complex_iplddt", ""),
+                    "complex_pde": data.get("complex_pde", ""),
+                    "complex_ipde": data.get("complex_ipde", ""),
+                    "protein_iptm": data.get("protein_iptm", ""),
+                    "ligand_iptm": data.get("ligand_iptm", ""),
+                    "ptm": data.get("ptm", ""),
+                    "iptm": data.get("iptm", ""),
+                    "confidence_score": data.get("confidence_score", ""),
                 }
-                headers = ['foldid', 'complex_plddt', 'complex_iplddt', 'complex_pde', 'complex_ipde', 'protein_iptm', 'ligand_iptm', 'ptm', 'iptm', 'confidence_score']
-            
+                headers = [
+                    "foldid",
+                    "complex_plddt",
+                    "complex_iplddt",
+                    "complex_pde",
+                    "complex_ipde",
+                    "protein_iptm",
+                    "ligand_iptm",
+                    "ptm",
+                    "iptm",
+                    "confidence_score",
+                ]
+
             data_rows.append(row)
-            
+
         except (json.JSONDecodeError, IOError) as e:
             print(f"Error processing {json_file}: {e}")
             continue
-    
+
     if not data_rows:
         print("No valid JSON files processed")
         return
-    
+
     # Sort by the last entry in the dict
     # Handle cases where sorting key is missing or non-numeric
     def safe_sort_key(row):
@@ -99,46 +125,56 @@ def process_json_files(input_dir: str, output_file: str, mode: str):
         score = row[last_key]
         if isinstance(score, (int, float)):
             return score
-        return -float('inf')  # Put invalid scores at the end
-    
+        return -float("inf")  # Put invalid scores at the end
+
     data_rows.sort(key=safe_sort_key, reverse=True)
-    
+
     try:
-        with open(output_file, 'w') as f:
+        with open(output_file, "w") as f:
             # Write header
-            f.write('\t'.join(headers) + '\n')
-            
+            f.write("\t".join(headers) + "\n")
+
             # Write data rows
             for row in data_rows:
                 values = [str(row[header]) for header in headers]
-                f.write('\t'.join(values) + '\n')
-        
+                f.write("\t".join(values) + "\n")
+
         print(f"Successfully wrote {len(data_rows)} rows to {output_file}")
         print("Results sorted by ranking_score (highest to lowest)")
-        
+
     except IOError as e:
         print(f"Error writing output file {output_file}: {e}")
-    
+
 
 def main():
     import argparse
-    
-    parser = argparse.ArgumentParser(description='Convert JSON files to TSV format')
-    parser.add_argument('--input-dir', '-i', default='.', 
-                        help='Input directory containing JSON files (default: current directory)')
-    parser.add_argument('--output', '-o', default='results.tsv',
-                        help='Output TSV filename (default: results.tsv)')
-    parser.add_argument('--mode',
-                        help='Set the input format. Options: colabfold, alphafold3, boltz')
-    
+
+    parser = argparse.ArgumentParser(description="Convert JSON files to TSV format")
+    parser.add_argument(
+        "--input-dir",
+        "-i",
+        default=".",
+        help="Input directory containing JSON files (default: current directory)",
+    )
+    parser.add_argument(
+        "--output",
+        "-o",
+        default="results.tsv",
+        help="Output TSV filename (default: results.tsv)",
+    )
+    parser.add_argument(
+        "--mode", help="Set the input format. Options: colabfold, alphafold3, boltz"
+    )
+
     args = parser.parse_args()
-    
+
     # Check if input directory exists
     if not os.path.isdir(args.input_dir):
         print(f"Error: Input directory '{args.input_dir}' does not exist")
         sys.exit(1)
-    
+
     process_json_files(args.input_dir, args.output, args.mode)
+
 
 if __name__ == "__main__":
     main()
