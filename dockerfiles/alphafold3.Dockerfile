@@ -31,14 +31,23 @@ RUN pip3 install --no-cache-dir --upgrade pip
 # Install HMMER. Do so before copying the source code, so that docker can cache
 # the image layer containing HMMER. Alternatively, you could also install it
 # using `apt-get install hmmer` instead of bulding it from source, but we want
-# to have control over the exact version of HMMER. Also note that eddylab.org
-# unfortunately doesn't support HTTPS and the tar file published on GitHub is
-# explicitly not recommended to be used for building from source.
+# to have control over the exact version of HMMER and also apply the sequence
+# limit patch. Also note that eddylab.org unfortunately doesn't support HTTPS
+# and the tar file published on GitHub is explicitly not recommended to be used
+# for building from source.
+
+# Download, check hash, and extract the HMMER source code.
 RUN mkdir /hmmer_build /hmmer ; \
     wget http://eddylab.org/software/hmmer/hmmer-3.4.tar.gz --directory-prefix /hmmer_build ; \
     (cd /hmmer_build && echo "ca70d94fd0cf271bd7063423aabb116d42de533117343a9b27a65c17ff06fbf3 hmmer-3.4.tar.gz" | sha256sum --check) && \
-    (cd /hmmer_build && tar zxf hmmer-3.4.tar.gz && rm hmmer-3.4.tar.gz) ; \
-    (cd /hmmer_build/hmmer-3.4 && ./configure --prefix /hmmer) ; \
+    (cd /hmmer_build && tar zxf hmmer-3.4.tar.gz && rm hmmer-3.4.tar.gz)
+
+# Apply the --seq_limit patch to HMMER.
+COPY alphafold3/docker/jackhmmer_seq_limit.patch /hmmer_build/
+RUN (cd /hmmer_build && patch -p0 < jackhmmer_seq_limit.patch)
+
+# Build HMMER.
+RUN (cd /hmmer_build/hmmer-3.4 && ./configure --prefix /hmmer) ; \
     (cd /hmmer_build/hmmer-3.4 && make -j) ; \
     (cd /hmmer_build/hmmer-3.4 && make install) ; \
     (cd /hmmer_build/hmmer-3.4/easel && make install) ; \
@@ -46,13 +55,10 @@ RUN mkdir /hmmer_build /hmmer ; \
 
 # Copy the AlphaFold 3 source code from the local machine to the container and
 # set the working directory to there.
-COPY alphafold3 /app/alphafold
+COPY alphafold3/ /app/alphafold
+WORKDIR /app/alphafold
 
 # Install Triton 3.1.0 from source if not on x86_64 architecture.
-# RUN if [ "$(uname -m)" != "x86_64" ]; then \
-#     echo "Building Triton for non-x86_64 architecture: $(uname -m)"; \
-#     pip3 install triton --index-url https://download.pytorch.org/whl/test/cu126 --force-reinstall; \
-# fi
 RUN if [ "$(uname -m)" != "x86_64" ]; then \
     echo "Building Triton for non-x86_64 architecture: $(uname -m)"; \
     git clone https://github.com/triton-lang/triton.git /opt/triton && \
@@ -65,9 +71,6 @@ RUN if [ "$(uname -m)" != "x86_64" ]; then \
 else \
     echo "Skipping Triton source installation for x86_64 architecture"; \
 fi
-
-
-WORKDIR /app/alphafold
 
 # Install setuptools (removed in Python 3.12) which some libraries still need.
 # Then install the Python dependencies of AlphaFold 3.
@@ -89,6 +92,8 @@ ENV XLA_PYTHON_CLIENT_PREALLOCATE=true
 ENV XLA_CLIENT_MEM_FRACTION=0.95
 
 # Link run_alphafold.py tool in the PATH.
-RUN ln -s /app/alphafold/run_alphafold.py /usr/local/bin/run_alphafold.py
+RUN sed -i '1i#!/usr/bin/env python3' /app/alphafold/run_alphafold.py && \
+    ln -s /app/alphafold/run_alphafold.py /usr/local/bin/run_alphafold.py && \
+    chmod +x /usr/local/bin/run_alphafold.py
 
-CMD ["bash"]
+CMD ["python3", "run_alphafold.py"]
