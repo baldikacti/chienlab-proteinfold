@@ -1,6 +1,5 @@
 process PROCESS_TSV {
     label 'process_single'
-    publishDir "${params.outdir}/${params.mode}/preprocessing", mode: 'copy', pattern: '*.{fasta,json}'
 
     container "docker://baldikacti/chienlab_proteinfold_py:latest"
 

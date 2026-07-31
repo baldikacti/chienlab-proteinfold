@@ -1,7 +1,6 @@
 process AF3_FOLD {
     label 'gpu'
     label 'error_ignore'
-    publishDir "${params.outdir}/${params.mode}", mode: 'copy', pattern: "folds/*"
 
     container "docker://baldikacti/alphafold3:latest"
 
@@ -11,7 +10,7 @@ process AF3_FOLD {
     path af3_model
 
     output:
-    path "folds/*"
+    path ("folds/*")                            , emit: folds
     path ("folds/*/*_summary_confidences.json") , emit: summary_json
 
     script:

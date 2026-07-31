@@ -38,4 +38,9 @@ workflow COLABFOLD {
         COLABFOLD_BATCH.out.json.collect(),
         'colabfold'
         )
+
+    emit:
+    preprocessed = PROCESS_TSV.out.processed_tsv_output
+    predictions  = COLABFOLD_BATCH.out.results
+    ranked       = RANK_AF.out.tsv
 }

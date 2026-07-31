@@ -1,7 +1,6 @@
 process BOLTZ_PREDICT {
     label 'gpu'
     label 'error_ignore'
-    publishDir "${params.outdir}/${params.mode}", mode: 'copy', pattern: "folds/**"
 
     container "docker://baldikacti/boltz:latest"
 
@@ -10,7 +9,8 @@ process BOLTZ_PREDICT {
     path cache
 
     output:
-    path ("folds/**")
+    path ("folds/msa/*")                       , emit: msa, optional: true
+    path ("folds/predictions/*")               , emit: predictions
     path ("folds/predictions/*/*_model_0.json"), emit: confidence_json
 
     script:

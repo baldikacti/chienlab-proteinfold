@@ -32,4 +32,10 @@ workflow BOLTZ {
         BOLTZ_PREDICT.out.confidence_json.collect(),
         'boltz'
     )
+
+    emit:
+    preprocessed = PROCESS_TSV.out.processed_tsv_output
+    msa          = BOLTZ_PREDICT.out.msa
+    predictions  = BOLTZ_PREDICT.out.predictions
+    ranked       = RANK_AF.out.tsv
 }

@@ -89,7 +89,7 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 #SBATCH -q long
 #SBATCH --output=logs/chienlab-proteinfold_%j.log
 
-module load nextflow/24.10.3 apptainer/latest
+module load nextflow/26.04.1 apptainer/latest
 
 APPTAINER_CACHEDIR=/path/to/.apptainer/cache  # Path to cache directory for apptainer cache
 
@@ -131,9 +131,7 @@ Example results output directory structure can be found below.
 
 - *preprocessing*: Contains all `bait:prey` combined FASTA files.
 
-- *screen*: Contains the prediction pairs based on the initial screen using the recycle count from `num_recycles_colabfold` paramater
-
-- *toprank*: Contains the prediction pairs from top ranked pairs based on `ipTM` score with 20 recycles. `top_rank` flag sets how many pairs should be rerun with 20 recycles.
+- *&lt;bait:prey&gt;*: One directory per `bait:prey` pair with the full `ColabFold` results for that pair.
 
 - *pipeline_info*: Contains pipeline execution summaries
 
@@ -145,12 +143,10 @@ Example results output directory structure can be found below.
 │   ├── preprocessing
 │   │   ├── # Paired FASTA files
 │   │   ...
-│   ├── screen
-│   │   ├── # Directories for each bait:prey pair with ColabFold results
+│   ├── <bait:prey>
+│   │   ├── # ColabFold results (PDB/mmCIF, JSON scores, PAE plots) for this pair
 │   │   ...
-│   └── toprank
-│       ├── # Directories for each bait:prey pair with ColabFold results from top ranked pairs
-│       ...
+│   ...
 ├── pipeline_info
 │   ├── # Execution summaries (html, txt)
 │   ...
@@ -216,7 +212,7 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 #SBATCH -q long
 #SBATCH --output=logs/chienlab-proteinfold_%j.log
 
-module load nextflow/24.10.3 apptainer/latest
+module load nextflow/26.04.1 apptainer/latest
 
 APPTAINER_CACHEDIR=/path/to/.apptainer/cache  # Path to cache directory for apptainer cache
 
@@ -335,7 +331,7 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 #SBATCH -q long
 #SBATCH --output=logs/chienlab-proteinfold_%j.log
 
-module load nextflow/24.10.3 apptainer/latest
+module load nextflow/26.04.1 apptainer/latest
 
 APPTAINER_CACHEDIR=/path/to/.apptainer/cache  # Path to cache directory for apptainer cache
 
@@ -385,14 +381,12 @@ Example results output directory structure can be found below.
 ```bash
 <outdir>
 ├── boltz
-│   ├── preprocessing # Contains the generated input JSON files for alphafold3
+│   ├── preprocessing # Contains the generated input FASTA files for boltz
 │   │   ...
-│   ├── folds
+│   └── folds
 │       ├── msa # Contains MSA results for each result
 │       │   ...
-│       ├── predictions # Contains directories for each inference result
-│       │   ...
-│       └── processed # Contains processed data used during execution
+│       └── predictions # Contains directories for each inference result
 │           ...
 ├── pipeline_info
 │   ├── # Execution summaries (html, txt)

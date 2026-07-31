@@ -46,4 +46,10 @@ workflow ALPHAFOLD3 {
         ch_json_confidence,
         'alphafold3'
     )
+
+    emit:
+    preprocessed = PROCESS_TSV.out.processed_tsv_output
+    msa          = AF3_MSA.out.af3_json_processed
+    folds        = AF3_FOLD.out.folds
+    ranked       = RANK_AF.out.tsv
 }

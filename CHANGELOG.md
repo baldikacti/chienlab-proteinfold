@@ -1,3 +1,15 @@
+# Version v0.10.0
+
+- Replaced the per-process `publishDir` directives with a workflow output definition (`publish:` section in `main.nf` plus a top-level `output` block). The output layout is now declared in one place and the modules no longer reference `params.outdir` or `params.mode`.
+
+- Publish mode is now controlled globally by `workflow.output.mode` (still driven by `--publish_dir_mode`, default `copy`).
+
+- Requires Nextflow `>=25.10.0`, the first release where workflow output definitions are generally available. The example SLURM scripts now load `nextflow/26.04.1`.
+
+- `boltz` mode no longer publishes `folds/processed` and `lightning_logs`. These are Boltz intermediates whose filenames collide between inference batches. `folds/msa` and `folds/predictions` are unchanged.
+
+- Fixed the ColabFold results tree in the README, which documented `screen` and `toprank` directories that the pipeline does not produce.
+
 # Version v0.9.2
 
 - Update `af3_*` modules to use a container instead of a module.
