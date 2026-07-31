@@ -3,9 +3,6 @@ mode: 'colabfold'
 input: 'tests/acclist.tsv'
 outdir: 'results/test_colab'
 
-# Optional
-top_rank: null
-
 # Options for colabfold_batch (null: provides defaults)
 ## MSA arguments
 msa_mode: 'mmseqs2_uniref_env'

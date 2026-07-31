@@ -65,8 +65,6 @@ Set `bait` = 1 for your bait protein/s. And 0 for every pair you want generated.
 
 **Optional arguments:**
 
-- **top_rank** = Number of top ranked (by `ipTM`) `bait:pair` predictions to pick for rerunning with 20 recycles for better prediction quality. [integer]
-
 - Additional optional paramaters can be found in `examples/example_colab.yaml` file.
 
 
@@ -101,7 +99,6 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.9.2 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --mode colabfold \
-      --top_rank 10 \
       -profile unity \
       -resume
 ```
