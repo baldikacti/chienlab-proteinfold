@@ -2,7 +2,7 @@ process COLABFOLD_BATCH {
     tag "$accID"
     label 'gpu'
     label 'error_ignore'
-    publishDir "${params.outdir}/${params.mode}/$outDir/$accID", mode: 'copy', pattern: '*.*'
+    publishDir "${params.outdir}/${params.mode}/$accID", mode: 'copy', pattern: '*.*'
 
     container "docker://ghcr.io/sokrypton/colabfold:1.5.5-cuda12.2.2"
 
@@ -10,7 +10,6 @@ process COLABFOLD_BATCH {
     tuple val(accID), path(fasta)
     path ("params/*")
     val  numRec
-    val  outDir
 
     output:
     path ("*")                        , emit: pdb

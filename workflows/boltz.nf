@@ -13,6 +13,7 @@ workflow BOLTZ {
     take:
     ch_input
     boltz_model
+    inf_batch
 
     main:
 
@@ -23,7 +24,7 @@ workflow BOLTZ {
     boltz_cache = PREPARE_BOLTZ_CACHE.out.cache
     
     BOLTZ_PREDICT (
-        ch_fasta.collate( params.inf_batch ),
+        ch_fasta.collate( inf_batch ),
         boltz_cache
     )
 

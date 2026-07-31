@@ -19,6 +19,7 @@ workflow ALPHAFOLD3 {
     accession_file
     database_dir
     model_dir
+    inf_batch
 
     main:
 
@@ -32,7 +33,7 @@ workflow ALPHAFOLD3 {
     msa_json = AF3_MSA.out.af3_json_processed
 
     ch_msa_json = msa_json
-        .collate( params.inf_batch )
+        .collate( inf_batch )
 
     AF3_FOLD (
         ch_msa_json,
