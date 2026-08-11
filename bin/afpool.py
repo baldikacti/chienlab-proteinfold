@@ -16,7 +16,7 @@ from typing import Dict, List, Tuple, Optional, Any, Union
 # Output: a dictionary with protein name as key and sequence as value.
 # Protein name is treated as the first word in a name line, represented by a line starting with '>'.
 # Raises exception if: FASTA file is not found; FASTA file is empty.
-def read_fasta(self, fasta_file: Union[str, Path]) -> Union[str, Dict[str, str]]:
+def read_fasta(fasta_file: Union[str, Path]) -> Union[str, Dict[str, str]]:
         """Read a FASTA file and return the sequence(s). 
         
         Args:
@@ -25,7 +25,7 @@ def read_fasta(self, fasta_file: Union[str, Path]) -> Union[str, Dict[str, str]]
         # Build full path using workdir if fasta_file is relative
         fasta_path = Path(fasta_file)
         if not fasta_path.is_absolute():
-            fasta_path = self.workdir / fasta_path
+            fasta_path = "./" / fasta_path
         
         try:
             with open(fasta_path, 'r') as f:
@@ -74,7 +74,7 @@ def read_fasta(self, fasta_file: Union[str, Path]) -> Union[str, Dict[str, str]]
 # Output: a list of dictionaries, each dictionary representing a pool of proteins, with protein names as keys and sequences as values.
 # Raises exception if: bait_protein is not size 1; test_proteins is empty; max_pool_depth is not a positive integer;
 # any protein is too long to be in a pool with the bait protein.
-def generate_pools(self, bait_protein: Dict[str, str], test_proteins: Dict[str, str], max_pool_depth: int) -> List[Dict[str, str]]:
+def generate_pools(bait_protein: Dict[str, str], test_proteins: Dict[str, str], max_pool_depth: int) -> List[Dict[str, str]]:
         """Generate pools of proteins for AF3 pooled folding prediction.
         
         Args:
@@ -140,6 +140,9 @@ def generate_pools(self, bait_protein: Dict[str, str], test_proteins: Dict[str, 
                 # Check if this protein has been in a pool with any of the proteins already in the current pool
                 overlap = False
                 for existing_prot in current_pool.keys():
+                    # Continue if it's the bait protein, since it is in every pool
+                    if existing_prot == bait_name:
+                        continue
                     if same_pool[prot_index][id_lookup.index(existing_prot)]:
                         overlap = True
                         break
@@ -155,6 +158,9 @@ def generate_pools(self, bait_protein: Dict[str, str], test_proteins: Dict[str, 
 
                 # Update the same_pool matrix to indicate that these proteins have been in a pool together
                 for existing_prot in current_pool.keys():
+                    # Continue if it's the bait protein, since it is in every pool
+                    if existing_prot == bait_name:
+                        continue
                     existing_index = id_lookup.index(existing_prot)
                     same_pool[prot_index][existing_index] = True
                     same_pool[existing_index][prot_index] = True
@@ -178,6 +184,9 @@ def generate_pools(self, bait_protein: Dict[str, str], test_proteins: Dict[str, 
                 # Check if this protein has been in a pool with any of the proteins already in the current pool
                 overlap = False
                 for existing_prot in current_pool.keys():
+                    # Continue if it's the bait protein, since it is in every pool
+                    if existing_prot == bait_name:
+                        continue
                     if same_pool[prot_index][id_lookup.index(existing_prot)]:
                         overlap = True
                         break
@@ -193,6 +202,9 @@ def generate_pools(self, bait_protein: Dict[str, str], test_proteins: Dict[str, 
 
                 # Update the same_pool matrix to indicate that these proteins have been in a pool together
                 for existing_prot in current_pool.keys():
+                    # Continue if it's the bait protein, since it is in every pool
+                    if existing_prot == bait_name:
+                        continue
                     existing_index = id_lookup.index(existing_prot)
                     same_pool[prot_index][existing_index] = True
                     same_pool[existing_index][prot_index] = True
@@ -232,6 +244,8 @@ def generate_pools(self, bait_protein: Dict[str, str], test_proteins: Dict[str, 
                 # Check if this protein has been in a pool with any of the proteins already in the current pool
                 overlap = False
                 for existing_prot in current_pool.keys():
+                    if existing_prot == bait_name:
+                        continue
                     if same_pool[prot_index][id_lookup.index(existing_prot)]:
                         overlap = True
                         break
@@ -247,6 +261,9 @@ def generate_pools(self, bait_protein: Dict[str, str], test_proteins: Dict[str, 
 
                 # Update the same_pool matrix to indicate that these proteins have been in a pool together
                 for existing_prot in current_pool.keys():
+                    # Continue if it's the bait protein, since it is in every pool
+                    if existing_prot == bait_name:
+                        continue
                     existing_index = id_lookup.index(existing_prot)
                     same_pool[prot_index][existing_index] = True
                     same_pool[existing_index][prot_index] = True
@@ -259,3 +276,64 @@ def generate_pools(self, bait_protein: Dict[str, str], test_proteins: Dict[str, 
 
         return pools
 
+# Test run: read in example_fa1.fasta and example_fa2.fasta from "../examples" directory, generate pools with max_pool_depth=1000, and print the resulting pools.
+if __name__ == "__main__":
+    # Read in the example FASTA files
+    test_proteins = read_fasta("examples/simulated_proteins_1000.fasta")
+
+    # Randomly select one protein to be the bait protein and remove it from test_proteins
+    bait_protein_name = random.choice(list(test_proteins.keys()))
+    bait_protein = {bait_protein_name: test_proteins.pop(bait_protein_name)}
+
+    # # Select the first protein in the dictionary to be the bait protein and remove it from test_proteins
+    # bait_protein_name = next(iter(test_proteins))
+    # bait_protein = {bait_protein_name: test_proteins.pop(bait_protein_name)}
+
+    # Print the selected bait protein
+    print(f"Selected bait protein: {bait_protein_name}")
+
+    # Print proteins with name and length
+    for name, seq in test_proteins.items():
+        print(f"{name}: {len(seq)} amino acids")
+    print(f"Remaining proteins: {len(test_proteins)}")
+
+    # For 10 iterations, generate pools with max_pool_depth=4000. Keep the set of pools with the fewest total number of pools.
+    best_pools = None
+    for iteration in range(10):
+        print(f"\nIteration {iteration + 1}:")
+        pools = generate_pools(bait_protein, test_proteins, max_pool_depth=4000)
+
+        # Keep the set of pools with the fewest total number of pools
+        if best_pools is None or len(pools) < len(best_pools):
+            best_pools = pools
+
+    # Print the best set of pools
+    print("\nBest set of pools:")
+    for i, pool in enumerate(best_pools):
+        print(f"Pool {i+1}:")
+        for name, seq in pool.items():
+            print(f">{name}")
+
+    # Sanity check: ensure each protein is in at least two pools, the bait protein is in every pool, and no protein has any given protein in both of its pools.
+    protein_pool_count = {name: 0 for name in test_proteins.keys()}
+    for pool in best_pools:
+        # Check that the bait protein is in every pool
+        assert bait_protein_name in pool, f"Bait protein {bait_protein_name} not found in pool."
+        for name, seq in pool.items():
+            if name != bait_protein_name:
+                protein_pool_count[name] += 1
+    print(f"Bait protein {bait_protein_name} is in every pool.")
+
+    # Check that each protein is in at least two pools
+    for name, count in protein_pool_count.items():
+        assert count >= 2, f"Protein {name} is in only {count} pools."
+    print("All proteins are in at least two pools.")
+
+    # Check that no protein has any given protein in both of its pools
+    for name, seq in pool.items():
+        for i, pool in enumerate(best_pools):
+            if name != bait_protein_name:
+                for other_name, other_seq in pool.items():
+                    if other_name != bait_protein_name and other_name != name:
+                        assert other_name not in seq, f"Protein {name} and {other_name} are both in pool {i+1}."
+    print("No protein has any given protein in both of its pools.")
