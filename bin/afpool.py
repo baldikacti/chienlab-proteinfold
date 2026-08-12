@@ -105,174 +105,127 @@ def generate_pools(bait_protein: Dict[str, str], test_proteins: Dict[str, str], 
         #   - id_lookup: str array lookup table for protein ID
         #   - length_lookup: int array lookup table for protein length
         #   - same_pool: N x N boolean array for protein ID x protein ID, indicating whether a given protein is in the same pool as another protein
-        #   - unused_prots: int array containing proteins NOT USED YET
+        #   - unused_prots: int array containing proteins to be used in the current iteration
+        #   - used_prots: int array containing proteins that have been used, and can be used again in the next iteration
         #   - once_used: int array containing proteins used once
 
         id_lookup = list(test_proteins.keys())
         length_lookup = [len(test_proteins[prot]) for prot in id_lookup]
         same_pool = [[False for _ in range(len(id_lookup))] for _ in range(len(id_lookup))]
         unused_prots = list(range(len(id_lookup)))
-        once_used = []
+        used_prots = []
+        extra_used_prots = []
+        num_iters = 0 # Counter, up to 2
 
-        # First loop: until all proteins have been used once
-        while unused_prots:
-            # Start a new pool with the bait protein
-            current_pool = {bait_name: bait_sequence}
-            current_pool_size = len(bait_sequence)
+        while num_iters < 2:
+            while unused_prots:
+                # Start a new pool with the bait protein
+                current_pool = {bait_name: bait_sequence}
+                current_pool_size = len(bait_sequence)
 
-            # Shuffle the unused_prots list to randomize selection
-            random.shuffle(unused_prots)
+                # Shuffle the unused_prots list to randomize selection
+                random.shuffle(unused_prots)
 
-            # Create temporary lists to hold proteins we've looked at
-            tmp = []
-            tmp2 = []
+                # Create temporary lists to hold proteins we've looked at
+                tmp = []
+                tmp2 = []
 
-            # Step 1: iterate over all unused proteins and try to add them to the current pool
-            for _ in range(len(unused_prots)-1, -1, -1):  # Iterate backwards to safely remove elements
-                prot_index = unused_prots.pop()
-                prot_length = length_lookup[prot_index]
+                # Step 1: iterate over all unused proteins and try to add them to the current pool
+                for _ in range(len(unused_prots)-1, -1, -1):  # Iterate backwards to safely remove elements
+                    prot_index = unused_prots.pop()
+                    prot_length = length_lookup[prot_index]
 
-                # Check if adding this protein would exceed the max pool depth
-                if current_pool_size + prot_length > max_pool_depth:
-                    tmp.append(prot_index)
-                    continue  # Skip this protein since it would exceed the max pool depth
+                    # Check if adding this protein would exceed the max pool depth
+                    if current_pool_size + prot_length > max_pool_depth:
+                        tmp.append(prot_index)
+                        continue  # Skip this protein since it would exceed the max pool depth
 
-                # Check if this protein has been in a pool with any of the proteins already in the current pool
-                overlap = False
-                for existing_prot in current_pool.keys():
-                    # Continue if it's the bait protein, since it is in every pool
-                    if existing_prot == bait_name:
-                        continue
-                    if same_pool[prot_index][id_lookup.index(existing_prot)]:
-                        overlap = True
-                        break
+                    # Check if this protein has been in a pool with any of the proteins already in the current pool
+                    overlap = False
+                    for existing_prot in current_pool.keys():
+                        # Continue if it's the bait protein, since it is in every pool
+                        if existing_prot == bait_name:
+                            continue
+                        if same_pool[prot_index][id_lookup.index(existing_prot)]:
+                            overlap = True
+                            break
 
-                if overlap:
-                    tmp.append(prot_index)
-                    continue  # Skip this protein since it has been in a pool with an existing protein
+                    if overlap:
+                        tmp.append(prot_index)
+                        continue  # Skip this protein since it has been in a pool with an existing protein
 
-                # Add the protein to the current pool
-                current_pool_size += prot_length
-                prot_name = id_lookup[prot_index]
-                current_pool[prot_name] = test_proteins[prot_name]
+                    # Add the protein to the current pool
+                    current_pool_size += prot_length
+                    prot_name = id_lookup[prot_index]
+                    current_pool[prot_name] = test_proteins[prot_name]
 
-                # Update the same_pool matrix to indicate that these proteins have been in a pool together
-                for existing_prot in current_pool.keys():
-                    # Continue if it's the bait protein, since it is in every pool
-                    if existing_prot == bait_name:
-                        continue
-                    existing_index = id_lookup.index(existing_prot)
-                    same_pool[prot_index][existing_index] = True
-                    same_pool[existing_index][prot_index] = True
+                    # Update the same_pool matrix to indicate that these proteins have been in a pool together
+                    for existing_prot in current_pool.keys():
+                        # Continue if it's the bait protein, since it is in every pool
+                        if existing_prot == bait_name:
+                            continue
+                        existing_index = id_lookup.index(existing_prot)
+                        same_pool[prot_index][existing_index] = True
+                        same_pool[existing_index][prot_index] = True
 
-                # Add this protein to once_used
-                once_used.append(prot_index)
+                    # Add this protein to used_prots
+                    used_prots.append(prot_index)
 
-            # Step 2: Check if any proteins added once can fit into the current pool
-            random.shuffle(once_used)
+                # Step 2: Check if any proteins added once can fit into the current pool
+                random.shuffle(used_prots)
 
-            # Iterate over all once_used proteins and try to add them to the current pool
-            for _ in range(len(once_used)-1, -1, -1):  # Iterate backwards to safely remove elements
-                prot_index = once_used.pop()
-                prot_length = length_lookup[prot_index]
+                # Iterate over all used proteins and try to add them to the current pool
+                for _ in range(len(used_prots)-1, -1, -1):  # Iterate backwards to safely remove elements
+                    prot_index = used_prots.pop()
+                    prot_length = length_lookup[prot_index]
 
-                # Check if adding this protein would exceed the max pool depth
-                if current_pool_size + prot_length > max_pool_depth:
-                    tmp2.append(prot_index)
-                    continue  # Skip this protein since it would exceed the max pool depth
+                    # Check if adding this protein would exceed the max pool depth
+                    if current_pool_size + prot_length > max_pool_depth:
+                        tmp2.append(prot_index)
+                        continue  # Skip this protein since it would exceed the max pool depth
 
-                # Check if this protein has been in a pool with any of the proteins already in the current pool
-                overlap = False
-                for existing_prot in current_pool.keys():
-                    # Continue if it's the bait protein, since it is in every pool
-                    if existing_prot == bait_name:
-                        continue
-                    if same_pool[prot_index][id_lookup.index(existing_prot)]:
-                        overlap = True
-                        break
+                    # Check if this protein has been in a pool with any of the proteins already in the current pool
+                    overlap = False
+                    for existing_prot in current_pool.keys():
+                        # Continue if it's the bait protein, since it is in every pool
+                        if existing_prot == bait_name:
+                            continue
+                        if same_pool[prot_index][id_lookup.index(existing_prot)]:
+                            overlap = True
+                            break
 
-                if overlap:
-                    tmp2.append(prot_index)
-                    continue  # Skip this protein since it has been in a pool with an existing protein
+                    if overlap:
+                        tmp2.append(prot_index)
+                        continue  # Skip this protein since it has been in a pool with an existing protein
 
-                # Add the protein to the current pool
-                current_pool_size += prot_length
-                prot_name = id_lookup[prot_index]
-                current_pool[prot_name] = test_proteins[prot_name]
+                    # Add the protein to the current pool
+                    current_pool_size += prot_length
+                    prot_name = id_lookup[prot_index]
+                    current_pool[prot_name] = test_proteins[prot_name]
+                    extra_used_prots.append(prot_index)
 
-                # Update the same_pool matrix to indicate that these proteins have been in a pool together
-                for existing_prot in current_pool.keys():
-                    # Continue if it's the bait protein, since it is in every pool
-                    if existing_prot == bait_name:
-                        continue
-                    existing_index = id_lookup.index(existing_prot)
-                    same_pool[prot_index][existing_index] = True
-                    same_pool[existing_index][prot_index] = True
+                    # Update the same_pool matrix to indicate that these proteins have been in a pool together
+                    for existing_prot in current_pool.keys():
+                        # Continue if it's the bait protein, since it is in every pool
+                        if existing_prot == bait_name:
+                            continue
+                        existing_index = id_lookup.index(existing_prot)
+                        same_pool[prot_index][existing_index] = True
+                        same_pool[existing_index][prot_index] = True  
 
-                # Once a protein is used twice, we remove it from consideration for a third pool.
-                # May want to change this later if some of the last few pools have low depth.        
+                # Add the completed pool to the list of pools
+                pools.append(current_pool)
 
-            # Add the completed pool to the list of pools
-            pools.append(current_pool)
+                # Add back any proteins that were not added to the current pool
+                unused_prots = tmp
+                used_prots = tmp2
 
-            # Add back any proteins that were not added to the current pool
-            unused_prots = tmp
-            once_used = tmp2
+            # Reset for the second iteration
+            unused_prots = used_prots
+            used_prots = extra_used_prots
+            extra_used_prots = []
 
-        # Second loop: until all proteins have been used twice
-        while once_used:
-            # Start a new pool with the bait protein
-            current_pool = {bait_name: bait_sequence}
-            current_pool_size = len(bait_sequence)
-
-            # Shuffle the once_used list to randomize selection
-            random.shuffle(once_used)
-
-            # Create a temporary list to hold proteins we've looked at
-            tmp = []
-
-            # Iterate over all once_used proteins and try to add them to the current pool
-            for _ in range(len(once_used)-1, -1, -1):  # Iterate backwards to safely remove elements
-                prot_index = once_used.pop()
-                prot_length = length_lookup[prot_index]
-
-                # Check if adding this protein would exceed the max pool depth
-                if current_pool_size + prot_length > max_pool_depth:
-                    tmp.append(prot_index)
-                    continue  # Skip this protein since it would exceed the max pool depth
-
-                # Check if this protein has been in a pool with any of the proteins already in the current pool
-                overlap = False
-                for existing_prot in current_pool.keys():
-                    if existing_prot == bait_name:
-                        continue
-                    if same_pool[prot_index][id_lookup.index(existing_prot)]:
-                        overlap = True
-                        break
-
-                if overlap:
-                    tmp.append(prot_index)
-                    continue  # Skip this protein since it has been in a pool with an existing protein
-
-                # Add the protein to the current pool
-                current_pool_size += prot_length
-                prot_name = id_lookup[prot_index]
-                current_pool[prot_name] = test_proteins[prot_name]
-
-                # Update the same_pool matrix to indicate that these proteins have been in a pool together
-                for existing_prot in current_pool.keys():
-                    # Continue if it's the bait protein, since it is in every pool
-                    if existing_prot == bait_name:
-                        continue
-                    existing_index = id_lookup.index(existing_prot)
-                    same_pool[prot_index][existing_index] = True
-                    same_pool[existing_index][prot_index] = True
-
-            # Add the completed pool to the list of pools
-            pools.append(current_pool)
-
-            # Add back any proteins that were not added to the current pool
-            once_used = tmp
+            num_iters += 1
 
         return pools
 
@@ -281,13 +234,13 @@ if __name__ == "__main__":
     # Read in the example FASTA files
     test_proteins = read_fasta("examples/simulated_proteins_1000.fasta")
 
-    # Randomly select one protein to be the bait protein and remove it from test_proteins
-    bait_protein_name = random.choice(list(test_proteins.keys()))
-    bait_protein = {bait_protein_name: test_proteins.pop(bait_protein_name)}
-
-    # # Select the first protein in the dictionary to be the bait protein and remove it from test_proteins
-    # bait_protein_name = next(iter(test_proteins))
+    # # Randomly select one protein to be the bait protein and remove it from test_proteins
+    # bait_protein_name = random.choice(list(test_proteins.keys()))
     # bait_protein = {bait_protein_name: test_proteins.pop(bait_protein_name)}
+
+    # Select the first protein in the dictionary to be the bait protein and remove it from test_proteins
+    bait_protein_name = next(iter(test_proteins))
+    bait_protein = {bait_protein_name: test_proteins.pop(bait_protein_name)}
 
     # Print the selected bait protein
     print(f"Selected bait protein: {bait_protein_name}")
@@ -325,9 +278,14 @@ if __name__ == "__main__":
     print(f"Bait protein {bait_protein_name} is in every pool.")
 
     # Check that each protein is in at least two pools
+    three_count = 0
     for name, count in protein_pool_count.items():
         assert count >= 2, f"Protein {name} is in only {count} pools."
-    print("All proteins are in at least two pools.")
+        if count == 3:
+            three_count += 1
+        if count > 3:
+            print(f"Warning: Protein {name} is in {count} pools.")
+    print(f"All proteins are in at least two pools, {three_count} are in exactly three pools.")
 
     # Check that no protein has any given protein in both of its pools
     for name, seq in pool.items():
