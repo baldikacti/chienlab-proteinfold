@@ -8,11 +8,11 @@ process AFPOOL {
     path pool_fasta
 
     output:
-    path ("pool*.fasta")         , emit: pool_fasta
+    path ("results/pool_*.fasta")         , emit: pool_fasta
 
     script:
     def args = task.ext.args ?: ''
     """
-    afpool.py --bait ${bait_fasta} --pool ${pool_fasta} $args
+    afpool.py --bait ${bait_fasta} --pool ${pool_fasta} --output ./results $args
     """
 }
