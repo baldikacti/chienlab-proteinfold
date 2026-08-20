@@ -38,6 +38,7 @@ workflow {
         .set { ch_input }
 
     ch_preprocessing        = channel.empty()
+    ch_preprocessing_pool   = channel.empty()
     ch_af3_msa              = channel.empty()
     ch_af3_folds            = channel.empty()
     ch_boltz_folds          = channel.empty()
@@ -50,9 +51,9 @@ workflow {
             params.num_recycle
         )
 
-        ch_preprocessing = COLABFOLD.out.preprocessed
-        ch_colabfold     = COLABFOLD.out.predictions
-        ch_ranked        = COLABFOLD.out.ranked
+        ch_preprocessing        = COLABFOLD.out.preprocessed
+        ch_colabfold            = COLABFOLD.out.predictions
+        ch_ranked               = COLABFOLD.out.ranked
     } else if (params.mode == "alphafold3") {
 
         ch_af3_db = file(params.db_dir, checkIfExists: true)
@@ -65,10 +66,11 @@ workflow {
             params.inf_batch
         )
 
-        ch_preprocessing = ALPHAFOLD3.out.preprocessed
-        ch_af3_msa       = ALPHAFOLD3.out.msa
-        ch_af3_folds     = ALPHAFOLD3.out.folds
-        ch_ranked        = ALPHAFOLD3.out.ranked
+        ch_preprocessing        = ALPHAFOLD3.out.preprocessed
+        ch_preprocessing_pool   = ALPHAFOLD3.out.preprocessed_pool
+        ch_af3_msa              = ALPHAFOLD3.out.msa
+        ch_af3_folds            = ALPHAFOLD3.out.folds
+        ch_ranked               = ALPHAFOLD3.out.ranked
     } else if (params.mode == "boltz") {
 
         BOLTZ (
@@ -77,13 +79,14 @@ workflow {
             params.inf_batch
         )
 
-        ch_preprocessing = BOLTZ.out.preprocessed
-        ch_boltz_folds   = BOLTZ.out.msa.mix(BOLTZ.out.predictions)
-        ch_ranked        = BOLTZ.out.ranked
+        ch_preprocessing        = BOLTZ.out.preprocessed
+        ch_boltz_folds          = BOLTZ.out.msa.mix(BOLTZ.out.predictions)
+        ch_ranked               = BOLTZ.out.ranked
     }
 
     publish:
     preprocessing           = ch_preprocessing
+    preprocessing_pool      = ch_preprocessing_pool
     alphafold3_msa          = ch_af3_msa
     alphafold3_folds        = ch_af3_folds
     boltz_folds             = ch_boltz_folds
@@ -103,6 +106,10 @@ workflow {
 output {
     preprocessing {
         path "${params.mode}/preprocessing"
+    }
+
+    preprocessing_pool {
+        path "${params.mode}/preprocessing/pool_raw"
     }
 
     // AF3_MSA emits `*_data.json`
