@@ -132,7 +132,7 @@ def read_fasta(fasta_file: str | Path) -> str | dict[str, str]:
                     sequences[current_header] = current_sequence
 
                 # Start new sequence
-                current_header = line.removeprefix(">").split(" ")[
+                current_header = line.removeprefix(">").split()[
                     0
                 ]  # Remove '>' prefix and only take first part of the name
                 current_sequence = ""
@@ -392,13 +392,13 @@ def main():
     parser.add_argument(
         "--bait-fasta",
         "-b",
-        default=".",
+        required=True,
         help="FASTA file containing the bait protein",
     )
     parser.add_argument(
         "--pool-fasta",
         "-p",
-        default=".",
+        required=True,
         help="FASTA file containing the pool of all test proteins",
     )
     parser.add_argument(
@@ -411,10 +411,21 @@ def main():
         "--max-pool-depth",
         "-d",
         default=5000,
+        type=int,
         help="Set the maximum depth of each pool (default: 5000)",
+    )
+    parser.add_argument(
+        "--seed",
+        "-s",
+        default=None,
+        type=int,
+        help="Random seed, for reproducible pools (default: non-deterministic)",
     )
 
     args = parser.parse_args()
+
+    # Optionally sets seed for reproducibility of the pools
+    random.seed(args.seed)
 
     # Check if input files exist
     if not os.path.isfile(args.bait_fasta):
@@ -430,7 +441,7 @@ def main():
     test_proteins = read_fasta(args.pool_fasta)
 
     pools = generate_pools(
-        bait_protein, test_proteins, max_pool_depth=int(args.max_pool_depth)
+        bait_protein, test_proteins, max_pool_depth=args.max_pool_depth
     )
 
     # Write the resulting pools to FASTA files
