@@ -303,17 +303,20 @@ def generate_pools(
                     max_pool_depth - current_pool_size,
                 )
             ) != -1:
-                # Add all proteins shared with this protein to the used_prots list
+                # Exclude this protein and everything it has already shared a pool with
+                # from the rest of this pool. The protein itself has to be excluded because
+                # it stays active in used_fenwick, which step 2 draws from.
                 current_shared_prots.update(shared_prots[new_index])
-
-                # Add the protein to the current pool
-                current_pool.append(new_index)
-                current_pool_size += length_lookup[new_index]
+                current_shared_prots.add(new_index)
 
                 # Update the shared_prots list to indicate that these proteins have been in a pool together
                 for existing_index in current_pool:
                     shared_prots[new_index].add(existing_index)
                     shared_prots[existing_index].add(new_index)
+
+                # Add the protein to the current pool
+                current_pool.append(new_index)
+                current_pool_size += length_lookup[new_index]
 
                 # Update the Fenwick tree to mark this protein as used
                 unused_fenwick.set(new_index, 0)
@@ -331,17 +334,19 @@ def generate_pools(
                     max_pool_depth - current_pool_size,
                 )
             ) != -1:
-                # Add all proteins shared with this protein to the used_prots list
+                # Exclude this protein and everything it has already shared a pool with
+                # from the rest of this pool
                 current_shared_prots.update(shared_prots[new_index])
-
-                # Add the protein to the current pool
-                current_pool.append(new_index)
-                current_pool_size += length_lookup[new_index]
+                current_shared_prots.add(new_index)
 
                 # Update the shared_prots list to indicate that these proteins have been in a pool together
                 for existing_index in current_pool:
                     shared_prots[new_index].add(existing_index)
                     shared_prots[existing_index].add(new_index)
+
+                # Add the protein to the current pool
+                current_pool.append(new_index)
+                current_pool_size += length_lookup[new_index]
 
                 # Update the Fenwick tree to mark this protein as used
                 used_fenwick.set(new_index, 0)
