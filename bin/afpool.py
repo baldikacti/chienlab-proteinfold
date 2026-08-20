@@ -192,8 +192,8 @@ def generate_index(
         num_active
     ):  # Check up to the number of possible proteins, stop if all possible indices are in shared_prots
         index = fenwick_tree.kth_instance(
-            int(random.random() * (num_active + 1))
-        )  # +1 since random.random() is 1-exclusive
+            random.randrange(num_active) + 1
+        )  # kth_instance is 1-indexed, so draw k from 1..num_active
         if index not in shared_prots:
             return index
         elif index in hits:
