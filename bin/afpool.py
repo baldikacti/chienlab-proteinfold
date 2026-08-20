@@ -228,7 +228,7 @@ def generate_pools(
     if not isinstance(max_pool_depth, int) or max_pool_depth <= 0:
         raise ValueError("max_pool_depth must be a positive integer.")
     if any(
-        len(seq) > max_pool_depth - len(bait_protein[list(bait_protein.keys())[0]])
+        len(seq) > max_pool_depth - len(bait_protein[next(iter(bait_protein.keys()))])
         for seq in test_proteins.values()
     ):
         raise ValueError(
@@ -422,8 +422,8 @@ def main():
     )
 
     # Write the resulting pools to FASTA files
+    os.makedirs(args.output, exist_ok=True)
     for i, pool in enumerate(pools):
-        os.makedirs(args.output, exist_ok=True)
         with open(f"{args.output}/pools_{i}.fasta", "w") as f:
             f.writelines(f">{name}\n{seq}\n" for name, seq in pool.items())
 
