@@ -185,21 +185,21 @@ def generate_index(
     # Get the index of the longest fitting protein for the given remaining depth
     longest_fitting_index = depth_lookup[remaining_depth]
 
-    # Use the Fenwick tree to find a random active index, repeating if the index is in shared_prots
+    # Use the Fenwick tree to find a random active index that is not in shared_prots.
+    # Start from a uniformly random rank, then walk the remaining ranks in order (wrapping
+    # around), so each eligible protein is examined at most once and -1 is returned only
+    # when every fitting protein is in shared_prots.
     num_active = fenwick_tree.prefix_sum(longest_fitting_index)
-    hits = []  # Proteins in shared_prots that we have already seen, to avoid infinite loops
-    for i in range(
-        num_active
-    ):  # Check up to the number of possible proteins, stop if all possible indices are in shared_prots
+    if num_active == 0:
+        return -1
+
+    start = random.randrange(num_active)
+    for offset in range(num_active):
         index = fenwick_tree.kth_instance(
-            random.randrange(num_active) + 1
-        )  # kth_instance is 1-indexed, so draw k from 1..num_active
+            (start + offset) % num_active + 1
+        )  # kth_instance is 1-indexed, so ranks run from 1 to num_active
         if index not in shared_prots:
             return index
-        elif index in hits:
-            i -= 1  # Decrement i to try again, since we hit a duplicate
-        else:
-            hits.append(index)  # Add to hits to avoid infinite loops
 
     return -1
 
