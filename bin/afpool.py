@@ -223,13 +223,23 @@ def generate_pools(
     """
     if len(bait_protein) != 1:
         raise ValueError("bait_protein must contain exactly one entry.")
-    if not test_proteins:
-        raise ValueError("test_proteins must contain at least one entry.")
     if not isinstance(max_pool_depth, int) or max_pool_depth <= 0:
         raise ValueError("max_pool_depth must be a positive integer.")
+
+    # Save bait protein name and sequence
+    bait_name, bait_sequence = next(iter(bait_protein.items()))
+
+    # Removes bait from the pool if it exists in the pool
+    test_proteins = {
+        name: seq
+        for name, seq in test_proteins.items()
+        if not (name == bait_name and seq == bait_sequence)
+    }
+
+    if not test_proteins:
+        raise ValueError("test_proteins must contain at least one entry.")
     if any(
-        len(seq) > max_pool_depth - len(bait_protein[next(iter(bait_protein.keys()))])
-        for seq in test_proteins.values()
+        len(seq) > max_pool_depth - len(bait_sequence) for seq in test_proteins.values()
     ):
         raise ValueError(
             "One or more test proteins are too long to be in a pool with the bait protein."
@@ -237,9 +247,6 @@ def generate_pools(
 
     # Initialize pools
     pools = []
-
-    # Save bait protein name and sequence
-    bait_name, bait_sequence = next(iter(bait_protein.items()))
 
     # Data structures:
     #   - id_lookup: str array lookup table for protein ID, where the shortest protein is at index 0 and the longest protein is at index len(id_lookup)-1
