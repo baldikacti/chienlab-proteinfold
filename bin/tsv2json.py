@@ -17,10 +17,10 @@ import pandas as pd
 import requests
 
 # Set up logging
-logger = logging.getLogger(__name__)
-logger.basicConfig(
-    level=logger.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
+logger = logging.getLogger(__name__)
 
 
 class TSV2AFConverter:

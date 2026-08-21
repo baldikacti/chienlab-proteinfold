@@ -20,15 +20,18 @@ workflow BOLTZ {
 
     if (params.pool) {
         // Pool mode input is a single-row, two-column TSV: <bait fasta>\t<pool fasta>
-        ch_pool_input = accession_file
-            .splitCsv(sep: '\t', strip: true)
-            .first()
-            .map { row ->
-                if (row.size() < 2) {
-                    error "Pool input '${params.input}' must have two tab-separated columns: bait FASTA and pool FASTA"
-                }
-                tuple(file(row[0], checkIfExists: true), file(row[1], checkIfExists: true))
-            }
+        ch_rows = accession_file
+            .splitCsv(header: true, sep: '\t', quote: '"')
+            .map { row -> tuple(file(row.Entry), row.bait as Integer) }
+
+        ch_split = ch_rows.branch { entry, bait ->
+            bait: bait == 1
+                return entry
+            not_bait: bait == 0
+                return entry
+        }
+
+        ch_pool_input = ch_split.bait.combine(ch_split.not_bait)
 
         POOL (ch_pool_input)
         ch_input_raw = POOL.out.pool_fasta.flatten()

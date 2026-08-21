@@ -9,3 +9,4 @@ tests/
 *.sh
 .Rproj.user
 *dev/
+.venv/
