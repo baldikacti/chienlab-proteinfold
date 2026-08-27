@@ -103,6 +103,27 @@ class FenwickTree:
         return -1
 
 
+def sanitize_header(header: str) -> str:
+    """Sanitize a FASTA header to a single unique identifier.
+
+    Args:
+        header: FASTA header line, with or without the leading '>'.
+    """
+    header = header.removeprefix(">").strip()
+    if not header:
+        raise ValueError("FASTA entry has an empty header.")
+
+    # Everything after the first whitespace is description text
+    first_word = header.split()[0]
+
+    # UniProt style: db|UniqueIdentifier|EntryName -> keep the UniqueIdentifier
+    fields = first_word.split("|")
+    if len(fields) >= 2 and fields[1]:
+        return fields[1]
+
+    return first_word
+
+
 # Function to parse FASTA files.
 # Input: fasta_file: a FASTA file with one or more sequences.
 # Output: a dictionary with protein name as key and sequence as value.
@@ -135,9 +156,11 @@ def read_fasta(fasta_file: str | Path) -> str | dict[str, str]:
                     sequences[current_header] = current_sequence
 
                 # Start new sequence
-                current_header = line.removeprefix(">").split()[
-                    0
-                ]  # Remove '>' prefix and only take first part of the name
+                current_header = sanitize_header(line)
+                if current_header in sequences:
+                    raise ValueError(
+                        f"FASTA file {fasta_path} contains duplicate entry '{current_header}'."
+                    )
                 current_sequence = ""
             elif line:  # Non-empty sequence line
                 current_sequence += line
@@ -706,7 +729,8 @@ def run_all_vs_all(
     skip_pairs = []
     if init_pools is not None:
         initial_pools = read_fasta(init_pools)
-        for pool_id in initial_pools["pool_id"]:
+        # Each header of an initial pool FASTA names a pool as underscore-joined protein ids
+        for pool_id in initial_pools:
             ids = pool_id.split("_")
             ixs = [protein_id_to_ix[id_] for id_ in ids if id_ in protein_id_to_ix]
             if len(ixs) >= 2:
