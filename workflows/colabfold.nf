@@ -5,7 +5,7 @@
 */
 
 include { COLABFOLD_BATCH                       } from '../modules/colabfold_batch'
-include { POOL                                  } from '../modules/pool'
+include { POOL; poolInput                       } from '../modules/pool'
 include { PREPARE_COLABFOLD_CACHE               } from '../modules/prepare_colabfold_cache'
 include { PROCESS_TSV                           } from '../modules/process_tsv'
 include { RANK_AF                               } from '../modules/rank_af'
@@ -21,28 +21,18 @@ workflow COLABFOLD {
     //
     // Create input channel from input file provided through params.input
     //
-    if (params.pool) {
-        // Pool mode input is a single-row, two-column TSV: <bait fasta>\t<pool fasta>
-        ch_pool_input = accession_file
-            .splitCsv(sep: '\t', strip: true)
-            .first()
-            .map { row ->
-                if (row.size() < 2) {
-                    error "Pool input '${params.input}' must have two tab-separated columns: bait FASTA and pool FASTA"
-                }
-                tuple(file(row[0], checkIfExists: true), file(row[1], checkIfExists: true))
-            }
+    ch_pools_tsv = channel.empty()
 
-        POOL (ch_pool_input)
-        ch_input_raw = POOL.out.pool_fasta
-            .flatten()
-            .map { v -> tuple(v.getBaseName(), v) }
+    if (params.pool) {
+        POOL (poolInput(accession_file), 'colabfold')
+        ch_preprocessed = POOL.out.pools.flatten()
+        ch_pools_tsv = POOL.out.pools_tsv
     } else {
         PROCESS_TSV (accession_file, 'colabfold')
-        ch_input_raw = PROCESS_TSV.out.processed_tsv_output
-            .flatten()
-            .map { v -> tuple(v.getBaseName(), v) }
+        ch_preprocessed = PROCESS_TSV.out.processed_tsv_output.flatten()
     }
+
+    ch_input_raw = ch_preprocessed.map { v -> tuple(v.getBaseName(), v) }
 
     PREPARE_COLABFOLD_CACHE()
     colabfold_cache = PREPARE_COLABFOLD_CACHE.out.cache
@@ -59,7 +49,8 @@ workflow COLABFOLD {
         )
 
     emit:
-    preprocessed = PROCESS_TSV.out.processed_tsv_output
+    preprocessed = ch_preprocessed
+    pools_tsv    = ch_pools_tsv
     predictions  = COLABFOLD_BATCH.out.results
     ranked       = RANK_AF.out.tsv
 }

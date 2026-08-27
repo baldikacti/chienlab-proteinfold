@@ -5,7 +5,7 @@
 */
 
 include { PROCESS_TSV           } from '../modules/process_tsv'
-include { POOL                  } from '../modules/pool'
+include { POOL; poolInput       } from '../modules/pool'
 include { PREPARE_BOLTZ_CACHE   } from '../modules/prepare_boltz_cache'
 include { BOLTZ_PREDICT         } from '../modules/boltz_predict'
 include { RANK_AF               } from '../modules/rank_af'
@@ -18,23 +18,12 @@ workflow BOLTZ {
 
     main:
 
+    ch_pools_tsv = channel.empty()
+
     if (params.pool) {
-        // Pool mode input is a single-row, two-column TSV: <bait fasta>\t<pool fasta>
-        ch_rows = accession_file
-            .splitCsv(header: true, sep: '\t', quote: '"')
-            .map { row -> tuple(file(row.Entry), row.bait as Integer) }
-
-        ch_split = ch_rows.branch { entry, bait ->
-            bait: bait == 1
-                return entry
-            not_bait: bait == 0
-                return entry
-        }
-
-        ch_pool_input = ch_split.bait.combine(ch_split.not_bait)
-
-        POOL (ch_pool_input)
-        ch_input_raw = POOL.out.pool_fasta.flatten()
+        POOL (poolInput(accession_file), 'boltz')
+        ch_input_raw = POOL.out.pools.flatten()
+        ch_pools_tsv = POOL.out.pools_tsv
     } else {
         PROCESS_TSV (accession_file, 'boltz')
         ch_input_raw = PROCESS_TSV.out.processed_tsv_output.flatten()
@@ -55,6 +44,7 @@ workflow BOLTZ {
 
     emit:
     preprocessed        = ch_input_raw
+    pools_tsv           = ch_pools_tsv
     msa                 = BOLTZ_PREDICT.out.msa
     predictions         = BOLTZ_PREDICT.out.predictions
     ranked              = RANK_AF.out.tsv
