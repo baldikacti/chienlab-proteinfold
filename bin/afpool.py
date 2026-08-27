@@ -7,13 +7,13 @@ each protein is in at least two pools, the bait protein is in every pool, and no
 generate_index, generate_pools written by Jonathan Coombs, read_fasta written by Berent Aldikacti, all_vs_all adapted by Jonathan Coombs from pooled_ppi in afpool paper.
 """
 
+import json
 import os
 import random
 import sys
 from pathlib import Path
-import json
-import yaml
 
+import yaml
 
 # Global arrays, defined at the start of the script
 depth_lookup = None  # Int array from 0 to max_pool_depth, where each entry links a remaining depth to the index of the longest fitting protein
@@ -162,7 +162,8 @@ def read_fasta(fasta_file: str | Path) -> str | dict[str, str]:
         raise FileNotFoundError(f"FASTA file {fasta_path} not found.")
     except Exception as e:  # noqa: BLE001
         raise RuntimeError(f"Error reading FASTA file {fasta_path}: {e}")
-    
+
+
 def export_pool(
     proteins: dict[str, str],
     pool_id: int,
@@ -232,9 +233,9 @@ def export_pool(
 
     else:
         raise ValueError(
-            f"Unknown mode '{mode}'. "
-            "Expected 'boltz', 'alphafold', or 'colabfold'."
+            f"Unknown mode '{mode}'. Expected 'boltz', 'alphafold', or 'colabfold'."
         )
+
 
 # Helper function to randomly select an available protein index with length <= remaining_depth, or return -1 if no such protein exists.
 # Inputs:   fenwick_tree: a FenwickTree object representing the active/inactive state of protein indices.
@@ -457,15 +458,23 @@ def generate_pools(
 
     return pools
 
+
 """
 Generate pools as in https://doi.org/10.1101/2025.07.01.662654 except that interactions are weighted by the product of the protein sizes
 Optimised for maximum performance using incremental updates and Numba JIT.
 """
 
-import argparse, itertools, sys, numpy as np, tqdm, numba#, pandas as pd
+import argparse  # , pandas as pd
+import itertools
+
+import numba
+import numpy as np
+import tqdm
+
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
+
 
 @numba.njit(parallel=True, nogil=True)
 def calculate_uncovered_weights(sizes, covered):
@@ -480,6 +489,7 @@ def calculate_uncovered_weights(sizes, covered):
         weights[i] = w
     return weights
 
+
 @numba.njit(nogil=True)
 def get_initial_large_pools_numba(sizes, covered, max_size):
     """Find pairs of proteins that exceed max_size and are not yet covered."""
@@ -491,6 +501,7 @@ def get_initial_large_pools_numba(sizes, covered, max_size):
                 res.append((i, j))
     return res
 
+
 @numba.njit(parallel=True, nogil=True)
 def find_best_i_parallel(pool_mask, sizes, pool_C, current_pool_size, max_size):
     n = sizes.shape[0]
@@ -500,7 +511,7 @@ def find_best_i_parallel(pool_mask, sizes, pool_C, current_pool_size, max_size):
             # Score: newly covered interaction weight per unit size of protein i.
             # Newly covered interaction weight for adding i to current pool is 2 * sizes[i] * (current_pool_size - pool_C[i])
             # Dividing by sizes[i] results in (current_pool_size - pool_C[i])
-            scores[i] = (current_pool_size - pool_C[i])
+            scores[i] = current_pool_size - pool_C[i]
 
     best_i = np.argmax(scores)
 
@@ -508,12 +519,14 @@ def find_best_i_parallel(pool_mask, sizes, pool_C, current_pool_size, max_size):
         return -1
     return best_i
 
+
 @numba.njit(parallel=True, nogil=True)
 def update_pool_C_parallel(pool_C, covered, best_i, size_best_i):
     n = pool_C.shape[0]
     for i in numba.prange(n):
         if covered[i, best_i]:
             pool_C[i] += size_best_i
+
 
 @numba.njit(nogil=True)
 def update_coverage_numba(pool_ix, covered, sizes, uncovered_weight_per_protein):
@@ -532,7 +545,10 @@ def update_coverage_numba(pool_ix, covered, sizes, uncovered_weight_per_protein)
                 newly_covered_count += 1
     return newly_covered_count
 
-def all_vs_all(sizes, max_size=5120, skip_pairs=[]):
+
+def all_vs_all(sizes, max_size=5120, skip_pairs=None):
+    if skip_pairs is None:
+        skip_pairs = []
     n = len(sizes)
     covered = np.zeros((n, n), dtype=np.uint8)
     np.fill_diagonal(covered, 1)
@@ -547,7 +563,7 @@ def all_vs_all(sizes, max_size=5120, skip_pairs=[]):
     # Initial large pairs
     large_pairs = get_initial_large_pools_numba(sizes, covered, max_size)
     for i, j in large_pairs:
-        yield(set([i, j]), sizes[i] + sizes[j])
+        yield ({i, j}, sizes[i] + sizes[j])
         covered[i, j] = 1
         covered[j, i] = 1
         weight = sizes[i] * sizes[j]
@@ -594,29 +610,38 @@ def all_vs_all(sizes, max_size=5120, skip_pairs=[]):
         pool_ix = np.where(pool_mask)[0]
         yield (set(pool_ix.tolist()), float(current_pool_size))
 
-        newly_covered = update_coverage_numba(pool_ix, covered, sizes, uncovered_weight_per_protein)
+        newly_covered = update_coverage_numba(
+            pool_ix, covered, sizes, uncovered_weight_per_protein
+        )
         covered_interactions += newly_covered
         pbar.update(newly_covered)
 
     pbar.close()
 
-def run_bait_vs_all(bait_fasta: Path, pool_fasta: Path, output_dir: Path, max_pool_depth: int, export_mode: str):
+
+def run_bait_vs_all(
+    bait_fasta: Path,
+    pool_fasta: Path,
+    output_dir: Path,
+    max_pool_depth: int,
+    export_mode: str,
+):
     # Read in the input FASTA files
     bait_protein = read_fasta(bait_fasta)
     test_proteins = read_fasta(pool_fasta)
 
-    pools = generate_pools(
-        bait_protein, test_proteins, max_pool_depth
-    )
+    pools = generate_pools(bait_protein, test_proteins, max_pool_depth)
 
     print(f"Generated {len(pools)} pools with max pool depth {max_pool_depth}")
 
     # Sanity check: ensure each protein is in at least two pools, the bait protein is in every pool, and no protein has any given protein in both of its pools.
     bait_protein_name = next(iter(bait_protein))
-    protein_pool_count = {name: 0 for name in test_proteins.keys()}
+    protein_pool_count = {name: 0 for name in test_proteins}
     for pool in pools:
         # Check that the bait protein is in every pool
-        assert bait_protein_name in pool, f"Bait protein {bait_protein_name} not found in pool."
+        assert bait_protein_name in pool, (
+            f"Bait protein {bait_protein_name} not found in pool."
+        )
         for name, seq in pool.items():
             if name != bait_protein_name:
                 protein_pool_count[name] += 1
@@ -630,7 +655,9 @@ def run_bait_vs_all(bait_fasta: Path, pool_fasta: Path, output_dir: Path, max_po
             three_count += 1
         if count > 3:
             print(f"Warning: Protein {name} is in {count} pools.")
-    print(f"All proteins are in at least two pools, {three_count} are in exactly three pools.")
+    print(
+        f"All proteins are in at least two pools, {three_count} are in exactly three pools."
+    )
 
     # Check that no protein has any given protein in both of its pools
     for name, seq in pool.items():
@@ -638,9 +665,11 @@ def run_bait_vs_all(bait_fasta: Path, pool_fasta: Path, output_dir: Path, max_po
             if name != bait_protein_name:
                 for other_name, other_seq in pool.items():
                     if other_name != bait_protein_name and other_name != name:
-                        assert other_name not in seq, f"Protein {name} and {other_name} are both in pool {i+1}."
+                        assert other_name not in seq, (
+                            f"Protein {name} and {other_name} are both in pool {i + 1}."
+                        )
     print("No protein shares multiple pools with any other protein.")
-    
+
     # Export pools to the specified output directory in the chosen format
     # Build a .tsv file with three columns: pool_id, protein_ids (underscore-separated), pool_size (sum of lengths of all proteins in the pool)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -653,21 +682,30 @@ def run_bait_vs_all(bait_fasta: Path, pool_fasta: Path, output_dir: Path, max_po
             export_pool(pool, i, output_dir, export_mode)
 
 
-def run_all_vs_all(pool_fasta: Path, init_pools: Path | None, max_pools: int | None, output_dir: Path, max_pool_depth: int, export_mode: str) -> Path:
-    
+def run_all_vs_all(
+    pool_fasta: Path,
+    init_pools: Path | None,
+    max_pools: int | None,
+    output_dir: Path,
+    max_pool_depth: int,
+    export_mode: str,
+) -> Path:
+
     proteins = read_fasta(pool_fasta)
     protein_ids = list(proteins.keys())
     protein_id_to_ix = {id_: i for i, id_ in enumerate(protein_ids)}
-    sizes = np.fromiter((len(sequence) for sequence in proteins.values()), dtype=np.float64)
-        
-    eprint(numba.get_num_threads(), 'threads available for numba')
-    eprint(len(protein_ids), 'proteins in input')
+    sizes = np.fromiter(
+        (len(sequence) for sequence in proteins.values()), dtype=np.float64
+    )
+
+    eprint(numba.get_num_threads(), "threads available for numba")
+    eprint(len(protein_ids), "proteins in input")
 
     skip_pairs = []
     if init_pools is not None:
         initial_pools = read_fasta(init_pools)
-        for pool_id in initial_pools['pool_id']:
-            ids = pool_id.split('_')
+        for pool_id in initial_pools["pool_id"]:
+            ids = pool_id.split("_")
             ixs = [protein_id_to_ix[id_] for id_ in ids if id_ in protein_id_to_ix]
             if len(ixs) >= 2:
                 skip_pairs.extend(itertools.combinations(sorted(ixs), 2))
@@ -675,35 +713,35 @@ def run_all_vs_all(pool_fasta: Path, init_pools: Path | None, max_pools: int | N
     pools_data_id = []
     pools_data_size = []
     pools_data_ixs = []
-    
+
     pool_gen = all_vs_all(sizes, max_pool_depth, skip_pairs=skip_pairs)
 
     if max_pools is not None:
         pool_gen = itertools.islice(pool_gen, max_pools)
-    
+
     for pool_ixs, pool_size in pool_gen:
         pool_ids_subset = sorted([protein_ids[ix] for ix in pool_ixs])
-        pools_data_id.append('_'.join(pool_ids_subset))
+        pools_data_id.append("_".join(pool_ids_subset))
         pools_data_size.append(pool_size)
         pools_data_ixs.append(list(pool_ixs))
-    
+
     if not pools_data_id:
-        eprint('No pools generated')
+        eprint("No pools generated")
         return
-    
-    eprint(len(pools_data_id), 'pools generated')
-    
+
+    eprint(len(pools_data_id), "pools generated")
+
     # Redundancy and completeness sanity checks (optimised)
     all_interactions_count = len(sizes) * (len(sizes) - 1) // 2
-    all_sum = (np.sum(sizes)**2 - np.sum(sizes**2)) / 2
-    
+    all_sum = (np.sum(sizes) ** 2 - np.sum(sizes**2)) / 2
+
     # Check if all possible interactions are covered across all pools
     unique_pairs_count = 0
     covered_check = np.zeros((len(sizes), len(sizes)), dtype=np.uint8)
     actual_gen_sum = 0
     for pool_ixs in pools_data_ixs:
         for i, p1 in enumerate(pool_ixs):
-            for p2 in pool_ixs[i+1:]:
+            for p2 in pool_ixs[i + 1 :]:
                 if p1 < p2:
                     low, high = p1, p2
                 else:
@@ -712,11 +750,16 @@ def run_all_vs_all(pool_fasta: Path, init_pools: Path | None, max_pools: int | N
                     covered_check[low, high] = 1
                     unique_pairs_count += 1
                 actual_gen_sum += sizes[p1] * sizes[p2]
-    
-    eprint(all_interactions_count, 'interactions expected')
-    eprint(unique_pairs_count, 'interactions across all pools generated')
-    eprint(unique_pairs_count == all_interactions_count, 'pools include all possible interactions')
-    eprint(actual_gen_sum / all_sum, 'length-weighted redundancy factor across all pools')
+
+    eprint(all_interactions_count, "interactions expected")
+    eprint(unique_pairs_count, "interactions across all pools generated")
+    eprint(
+        unique_pairs_count == all_interactions_count,
+        "pools include all possible interactions",
+    )
+    eprint(
+        actual_gen_sum / all_sum, "length-weighted redundancy factor across all pools"
+    )
 
     # Export pools to the specified output directory in the chosen format
     # Build a .tsv file with three columns: pool_id, protein_ids (underscore-separated), pool_size (sum of lengths of all proteins in the pool)
@@ -725,10 +768,18 @@ def run_all_vs_all(pool_fasta: Path, init_pools: Path | None, max_pools: int | N
         f.write("pool_id\tprotein_ids\tpool_size\n")
         for i, (pool_id, pool_size) in enumerate(zip(pools_data_id, pools_data_size)):
             f.write(f"{i}\t{pool_id}\t{pool_size}\n")
-            export_pool({protein_ids[ix]: proteins[protein_ids[ix]] for ix in pools_data_ixs[i]}, i, output_dir, mode=export_mode)
+            export_pool(
+                {
+                    protein_ids[ix]: proteins[protein_ids[ix]]
+                    for ix in pools_data_ixs[i]
+                },
+                i,
+                output_dir,
+                mode=export_mode,
+            )
+
 
 def main():
-    import argparse
 
     parser = argparse.ArgumentParser(
         description="FASTA file of pooled proteins to a selected pooled operation"
@@ -807,7 +858,7 @@ def main():
     if not os.path.isfile(args.pool_fasta):
         print(f"Error: Pool FASTA file '{args.pool_fasta}' does not exist")
         sys.exit(1)
-    
+
     # Split based on mode
     if args.mode == "bait_vs_all":
         if not args.bait_fasta:
@@ -816,8 +867,14 @@ def main():
         if not os.path.isfile(args.bait_fasta):
             print(f"Error: Bait FASTA file '{args.bait_fasta}' does not exist")
             sys.exit(1)
-        run_bait_vs_all(args.bait_fasta, args.pool_fasta, output_dir, args.max_pool_depth, args.export_mode)
-    
+        run_bait_vs_all(
+            args.bait_fasta,
+            args.pool_fasta,
+            output_dir,
+            args.max_pool_depth,
+            args.export_mode,
+        )
+
     elif args.mode == "all_vs_all":
         init_pools = None
         if args.init_pools:
@@ -830,7 +887,15 @@ def main():
         if args.max_pools is not None:
             max_pools = args.max_pools
 
-        run_all_vs_all(args.pool_fasta, init_pools, max_pools, output_dir, args.max_pool_depth, args.export_mode)
+        run_all_vs_all(
+            args.pool_fasta,
+            init_pools,
+            max_pools,
+            output_dir,
+            args.max_pool_depth,
+            args.export_mode,
+        )
+
 
 if __name__ == "__main__":
     main()
