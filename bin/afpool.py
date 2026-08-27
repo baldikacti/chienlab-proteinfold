@@ -177,7 +177,7 @@ def export_pool(
         proteins: Dictionary with protein names as keys and sequences as values.
         pool_id: ID of the pool to export.
         output_dir: Directory to save the output file.
-        mode: Export format, one of 'boltz', 'alphafold', or 'colabfold'.
+        mode: Export format, one of 'boltz', 'alphafold3', or 'colabfold'.
     """
 
     mode = mode.lower()
@@ -200,7 +200,7 @@ def export_pool(
         with output_path.open("w") as f:
             yaml.safe_dump(data, f, sort_keys=False)
 
-    elif mode == "alphafold":
+    elif mode == "alphafold3":
         output_path = output_dir / f"pool_{pool_id}.json"
 
         data = {
@@ -227,13 +227,16 @@ def export_pool(
         protein_ids = "_".join(proteins.keys())
         protein_sequences = ":".join(proteins.values())
 
+        wrap_length = 80
         with output_path.open("w") as f:
             f.write(f">{protein_ids}\n")
-            f.write(f"{protein_sequences}\n")
+            # Split the string every 'wrap_length' characters
+            for i in range(0, len(protein_sequences), wrap_length):
+                f.write(protein_sequences[i : i + wrap_length] + "\n")
 
     else:
         raise ValueError(
-            f"Unknown mode '{mode}'. Expected 'boltz', 'alphafold', or 'colabfold'."
+            f"Unknown mode '{mode}'. Expected 'boltz', 'alphafold3', or 'colabfold'."
         )
 
 
@@ -364,7 +367,6 @@ def generate_pools(
     num_used_prots = (
         0  # Counter for the number of proteins that have been used at least once
     )
-    num_twice_used_prots = 0  # Counter for the number of proteins that have been used at least twice, currently not being used
     current_pool_id = -1
     print("Done with setup, starting iterations")
 
@@ -821,8 +823,8 @@ def main():
         "--export-mode",
         "-e",
         default="boltz",
-        choices=["boltz", "alphafold", "colabfold"],
-        help="Export mode for pool files (boltz, alphafold, or colabfold)",
+        choices=["boltz", "alphafold3", "colabfold"],
+        help="Export mode for pool files (boltz, alphafold3, or colabfold)",
     )
     # Bait vs all argument
     parser.add_argument(
