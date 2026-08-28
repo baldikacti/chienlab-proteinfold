@@ -661,13 +661,17 @@ def run_bait_vs_all(
 
     # Sanity check: ensure each protein is in at least two pools, the bait protein is in every pool, and no protein has any given protein in both of its pools.
     bait_protein_name = next(iter(bait_protein))
-    protein_pool_count = {name: 0 for name in test_proteins}
+    # generate_pools drops the bait from the test set, so a bait entry in the
+    # pool FASTA is never pooled as a test protein and must not be counted here.
+    protein_pool_count = {
+        name: 0 for name in test_proteins if name != bait_protein_name
+    }
     for pool in pools:
         # Check that the bait protein is in every pool
         assert bait_protein_name in pool, (
             f"Bait protein {bait_protein_name} not found in pool."
         )
-        for name, seq in pool.items():
+        for name in pool:
             if name != bait_protein_name:
                 protein_pool_count[name] += 1
     print(f"Bait protein {bait_protein_name} is in every pool.")
@@ -684,15 +688,15 @@ def run_bait_vs_all(
         f"All proteins are in at least two pools, {three_count} are in exactly three pools."
     )
 
-    # Check that no protein has any given protein in both of its pools
-    for name, seq in pool.items():
-        for i, pool in enumerate(pools):
-            if name != bait_protein_name:
-                for other_name, other_seq in pool.items():
-                    if other_name != bait_protein_name and other_name != name:
-                        assert other_name not in seq, (
-                            f"Protein {name} and {other_name} are both in pool {i + 1}."
-                        )
+    # Check that no pair of test proteins appears together in more than one pool
+    pair_first_pool = {}
+    for i, pool in enumerate(pools):
+        members = sorted(name for name in pool if name != bait_protein_name)
+        for pair in itertools.combinations(members, 2):
+            earlier_pool = pair_first_pool.setdefault(pair, i)
+            assert earlier_pool == i, (
+                f"Proteins {pair[0]} and {pair[1]} are both in pools {earlier_pool} and {i}."
+            )
     print("No protein shares multiple pools with any other protein.")
 
     # Export pools to the specified output directory in the chosen format
