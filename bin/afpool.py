@@ -10,6 +10,7 @@ generate_index, generate_pools written by Jonathan Coombs, read_fasta written by
 import json
 import os
 import random
+import string
 import sys
 from pathlib import Path
 
@@ -209,16 +210,20 @@ def export_pool(
 
     if mode == "boltz":
         output_path = output_dir / f"pool_{pool_id}.yaml"
+        # Generates a list of strings from A to ZZ
+        labels = list(string.ascii_uppercase) + [
+            a + b for a in string.ascii_uppercase for b in string.ascii_uppercase
+        ]
 
         data = {
             "sequences": [
                 {
                     "protein": {
-                        "id": protein_id,
+                        "id": labels[counter],
                         "sequence": sequence,
                     }
                 }
-                for protein_id, sequence in proteins.items()
+                for (counter, (_, sequence)) in enumerate(proteins.items())
             ],
         }
 
@@ -227,6 +232,10 @@ def export_pool(
 
     elif mode == "alphafold3":
         output_path = output_dir / f"pool_{pool_id}.json"
+        # Generates a list of strings from A to ZZ
+        labels = list(string.ascii_uppercase) + [
+            a + b for a in string.ascii_uppercase for b in string.ascii_uppercase
+        ]
 
         data = {
             "dialect": "alphafold3",
@@ -236,11 +245,11 @@ def export_pool(
             "sequences": [
                 {
                     "protein": {
-                        "id": protein_id,
+                        "id": labels[counter],
                         "sequence": sequence,
                     }
                 }
-                for protein_id, sequence in proteins.items()
+                for (counter, (_, sequence)) in enumerate(proteins.items())
             ],
         }
 
