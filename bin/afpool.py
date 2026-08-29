@@ -192,6 +192,7 @@ def export_pool(
     pool_id: int,
     output_dir: Path,
     mode: str,
+    inf_seed: list[int],
 ) -> None:
     """
     Export a protein pool in the specified format.
@@ -201,6 +202,7 @@ def export_pool(
         pool_id: ID of the pool to export.
         output_dir: Directory to save the output file.
         mode: Export format, one of 'boltz', 'alphafold3', or 'colabfold'.
+        inf_seed: modelSeed entries for Alphafold3
     """
 
     mode = mode.lower()
@@ -230,6 +232,7 @@ def export_pool(
             "dialect": "alphafold3",
             "version": 1,
             "name": f"pool_{pool_id}",
+            "modelSeeds": inf_seed,
             "sequences": [
                 {
                     "protein": {
@@ -650,6 +653,7 @@ def run_bait_vs_all(
     output_dir: Path,
     max_pool_depth: int,
     export_mode: str,
+    inf_seed: list[int],
 ):
     # Read in the input FASTA files
     bait_protein = read_fasta(bait_fasta)
@@ -708,7 +712,7 @@ def run_bait_vs_all(
             protein_ids = "_".join(pool.keys())
             pool_size = sum(len(seq) for seq in pool.values())
             f.write(f"{i}\t{protein_ids}\t{pool_size}\n")
-            export_pool(pool, i, output_dir, export_mode)
+            export_pool(pool, i, output_dir, export_mode, inf_seed)
 
 
 def run_all_vs_all(
@@ -718,6 +722,7 @@ def run_all_vs_all(
     output_dir: Path,
     max_pool_depth: int,
     export_mode: str,
+    inf_seed: list[int],
 ) -> Path:
 
     proteins = read_fasta(pool_fasta)
@@ -806,7 +811,19 @@ def run_all_vs_all(
                 i,
                 output_dir,
                 mode=export_mode,
+                inf_seed=inf_seed,
             )
+
+
+def parse_seed_list(value: str) -> list[int]:
+    """Accepts '1' or '1,2,3,4' and returns a list of ints."""
+    try:
+        return [int(s.strip()) for s in value.split(",") if s.strip()]
+    except ValueError as e:
+        raise argparse.ArgumentTypeError(
+            f"Invalid --inference_seed value: {value!r}. "
+            "Expected an int or comma-separated ints, e.g. '1' or '1,2,3'."
+        ) from e
 
 
 def main():
@@ -841,11 +858,17 @@ def main():
         help="Set the maximum depth of each pool (default: 5000)",
     )
     parser.add_argument(
-        "--seed",
+        "--pool_seed",
         "-s",
         default=None,
         type=int,
         help="Random seed, for reproducible pools (default: non-deterministic)",
+    )
+    parser.add_argument(
+        "--inference_seed",
+        default="1",
+        type=parse_seed_list,
+        help="Comma separated list of modelSeeds for Alphafold3 inference step. (default: '1')",
     )
     parser.add_argument(
         "--export-mode",
@@ -881,8 +904,8 @@ def main():
     output_dir = Path(args.output)
 
     # Optionally sets seed for reproducibility of the pools
-    if args.seed is not None:
-        random.seed(args.seed)
+    if args.pool_seed is not None:
+        random.seed(args.pool_seed)
 
     # Check if input files exist
     if not os.path.isfile(args.pool_fasta):
@@ -903,6 +926,7 @@ def main():
             output_dir,
             args.max_pool_depth,
             args.export_mode,
+            args.inference_seed,
         )
 
     elif args.mode == "all_vs_all":
@@ -924,6 +948,7 @@ def main():
             output_dir,
             args.max_pool_depth,
             args.export_mode,
+            args.inference_seed,
         )
 
 
