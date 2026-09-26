@@ -764,7 +764,7 @@ def run_all_vs_all(
         pool_gen = itertools.islice(pool_gen, max_pools)
 
     for pool_ixs, pool_size in pool_gen:
-        pool_ids_subset = sorted([protein_ids[ix] for ix in pool_ixs])
+        pool_ids_subset = [protein_ids[ix] for ix in pool_ixs]
         pools_data_id.append("_".join(pool_ids_subset))
         pools_data_size.append(pool_size)
         pools_data_ixs.append(list(pool_ixs))
