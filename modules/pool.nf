@@ -26,6 +26,25 @@ process POOL {
     """
 }
 
+process POOL_ANALYSIS {
+    label 'process_low'
+
+    container "docker://baldikacti/chienlab_proteinfold_py:latest"
+
+    input:
+    path input_dir
+    path pool_tsv
+
+    output:
+    path ("analysis_results/*"), emit: analysis_results
+
+    script:
+    """
+    mkdir analysis_results
+    afpool_analysis.py --input-dir $input_dir --pools $pool_tsv --output analysis_results/"$input_dir"_analysis
+    """
+}
+
 // Build the POOL input channel from the pool samplesheet.
 def poolInput(accession_file) {
 

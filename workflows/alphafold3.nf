@@ -5,7 +5,7 @@
 */
 
 include { PROCESS_TSV       } from '../modules/process_tsv'
-include { POOL; poolInput   } from '../modules/pool'
+include { POOL; POOL_ANALYSIS; poolInput   } from '../modules/pool'
 include { AF3_MSA           } from '../modules/af3_msa'
 include { AF3_FOLD          } from '../modules/af3_fold'
 include { RANK_AF           } from '../modules/rank_af'
@@ -50,11 +50,19 @@ workflow ALPHAFOLD3 {
         model_dir
     )
     ch_json_confidence = AF3_FOLD.out.summary_json.collect()
+    ch_af3_dir = AF3_FOLD.out.folds
 
-    RANK_AF (
-        ch_json_confidence,
-        'alphafold3'
-    )
+    if (params.pool) {
+        POOL_ANALYSIS (
+            ch_af3_dir,
+            ch_pools_tsv
+        )
+    } else {
+        RANK_AF (
+            ch_json_confidence,
+            'alphafold3'
+        )
+    }
 
     emit:
     preprocessed        = ch_input_raw

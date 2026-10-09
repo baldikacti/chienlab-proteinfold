@@ -1,5 +1,8 @@
 process BOLTZ_PREDICT {
-    label 'gpu'
+    label 'process_medium'
+    // toString() guards against a command-line `--use_gpu false`, which reaches a
+    // process directive as the String 'false' rather than a boolean
+    label params.use_gpu.toString() == 'true' ? 'process_gpu' : null
     label 'error_ignore'
 
     container "docker://baldikacti/boltz:latest"
