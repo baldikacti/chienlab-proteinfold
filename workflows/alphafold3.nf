@@ -57,11 +57,13 @@ workflow ALPHAFOLD3 {
             ch_af3_dir,
             ch_pools_tsv
         )
+        af3_results = POOL_ANALYSIS.out.analysis_results
     } else {
         RANK_AF (
             ch_json_confidence,
             'alphafold3'
         )
+        af3_results = RANK_AF.out.tsv
     }
 
     emit:
@@ -69,5 +71,5 @@ workflow ALPHAFOLD3 {
     pools_tsv           = ch_pools_tsv
     msa                 = AF3_MSA.out.af3_json_processed
     folds               = AF3_FOLD.out.folds
-    ranked              = RANK_AF.out.tsv
+    ranked              = af3_results
 }
