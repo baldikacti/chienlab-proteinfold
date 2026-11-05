@@ -209,7 +209,7 @@ def export_pool(
     mode = mode.lower()
 
     if mode == "boltz":
-        output_path = output_dir / f"pool_{pool_id}.yaml"
+        output_path = output_dir / f"pool{pool_id}.yaml"
         # Generates a list of strings from A to ZZ
         labels = list(string.ascii_uppercase) + [
             a + b for a in string.ascii_uppercase for b in string.ascii_uppercase
@@ -231,7 +231,7 @@ def export_pool(
             yaml.safe_dump(data, f, sort_keys=False)
 
     elif mode == "alphafold3":
-        output_path = output_dir / f"pool_{pool_id}.json"
+        output_path = output_dir / f"pool{pool_id}.json"
         # Generates a list of strings from A to ZZ
         labels = list(string.ascii_uppercase) + [
             a + b for a in string.ascii_uppercase for b in string.ascii_uppercase
@@ -240,7 +240,7 @@ def export_pool(
         data = {
             "dialect": "alphafold3",
             "version": 1,
-            "name": f"pool_{pool_id}",
+            "name": f"pool{pool_id}",
             "modelSeeds": inf_seed,
             "sequences": [
                 {
@@ -257,7 +257,7 @@ def export_pool(
             json.dump(data, f, indent=2)
 
     elif mode == "colabfold":
-        output_path = output_dir / f"pool_{pool_id}.fasta"
+        output_path = output_dir / f"pool{pool_id}.fasta"
 
         protein_ids = "_".join(proteins.keys())
         protein_sequences = ":".join(proteins.values())
@@ -830,7 +830,7 @@ def parse_seed_list(value: str) -> list[int]:
         return [int(s.strip()) for s in value.split(",") if s.strip()]
     except ValueError as e:
         raise argparse.ArgumentTypeError(
-            f"Invalid --inference_seed value: {value!r}. "
+            f"Invalid --inference_seeds value: {value!r}. "
             "Expected an int or comma-separated ints, e.g. '1' or '1,2,3'."
         ) from e
 
@@ -867,14 +867,14 @@ def main():
         help="Set the maximum depth of each pool (default: 5000)",
     )
     parser.add_argument(
-        "--pool_seed",
+        "--seed",
         "-s",
         default=None,
         type=int,
-        help="Random seed, for reproducible pools (default: non-deterministic)",
+        help="Random seed, for reproducible pool generation (default: non-deterministic)",
     )
     parser.add_argument(
-        "--inference_seed",
+        "--inference_seeds",
         default="1",
         type=parse_seed_list,
         help="Comma separated list of modelSeeds for Alphafold3 inference step. (default: '1')",
@@ -913,8 +913,8 @@ def main():
     output_dir = Path(args.output)
 
     # Optionally sets seed for reproducibility of the pools
-    if args.pool_seed is not None:
-        random.seed(args.pool_seed)
+    if args.seed is not None:
+        random.seed(args.seed)
 
     # Check if input files exist
     if not os.path.isfile(args.pool_fasta):
@@ -935,7 +935,7 @@ def main():
             output_dir,
             args.max_pool_depth,
             args.export_mode,
-            args.inference_seed,
+            args.inference_seeds,
         )
 
     elif args.mode == "all_vs_all":
@@ -957,7 +957,7 @@ def main():
             output_dir,
             args.max_pool_depth,
             args.export_mode,
-            args.inference_seed,
+            args.inference_seeds,
         )
 
 

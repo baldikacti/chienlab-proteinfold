@@ -54,7 +54,7 @@ workflow ALPHAFOLD3 {
 
     if (params.pool) {
         POOL_ANALYSIS (
-            ch_af3_dir,
+            ch_af3_dir.collect(),
             ch_pools_tsv
         )
         af3_results = POOL_ANALYSIS.out.analysis_results

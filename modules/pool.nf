@@ -8,7 +8,7 @@ process POOL {
     val export_mode
 
     output:
-    path ("pools/pool_*.{fasta,yaml,json}"), emit: pools
+    path ("pools/pool*.{fasta,yaml,json}") , emit: pools
     path ("pools/pools.tsv")               , emit: pools_tsv
 
     script:
@@ -32,16 +32,17 @@ process POOL_ANALYSIS {
     container "docker://baldikacti/chienlab_proteinfold_py:latest"
 
     input:
-    path input_dir
+    path ("folds/*")
     path pool_tsv
 
     output:
     path ("analysis_results/*"), emit: analysis_results
 
     script:
+    def bait_arg = params.pool_mode == 'bait_vs_all' ? "--bait" : ''
     """
     mkdir analysis_results
-    afpool_analysis.py --input-dir $input_dir --pools $pool_tsv --output analysis_results/"$input_dir"_analysis
+    afpool_analysis.py --input-dir folds --pools $pool_tsv --output analysis_results/pool_analysis ${bait_arg}
     """
 }
 
