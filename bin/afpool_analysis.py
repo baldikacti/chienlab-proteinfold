@@ -258,20 +258,24 @@ def write_thresholded_pairs(
                 best[key] = row
         return sorted(best.values(), key=lambda row: row["pair_iptm"], reverse=True)
 
-    potential = best_per_pair([
-        row
-        for row in data_rows
-        if not row["has_clash"]
-        and row["pair_iptm"] > iptm_threshold
-        and row["pair_iptm_z"] != ""
-        and row["pair_iptm_z"] > z_threshold
-    ])
+    potential = best_per_pair(
+        [
+            row
+            for row in data_rows
+            if not row["has_clash"]
+            and row["pair_iptm"] > iptm_threshold
+            and row["pair_iptm_z"] != ""
+            and row["pair_iptm_z"] > z_threshold
+        ]
+    )
     potential_keys = {pair_key(row) for row in potential}
-    inconclusive = best_per_pair([
-        row
-        for row in data_rows
-        if row["has_clash"] and pair_key(row) not in potential_keys
-    ])
+    inconclusive = best_per_pair(
+        [
+            row
+            for row in data_rows
+            if row["has_clash"] and pair_key(row) not in potential_keys
+        ]
+    )
 
     output_dir = os.path.dirname(output_file)
     for name, rows in (
@@ -281,8 +285,9 @@ def write_thresholded_pairs(
         path = os.path.join(output_dir, name)
         with open(path, "w") as f:
             f.write("\t".join(HEADERS) + "\n")
-            for row in rows:
-                f.write("\t".join(str(row[header]) for header in HEADERS) + "\n")
+            f.writelines(
+                "\t".join(str(row[header]) for header in HEADERS) + "\n" for row in rows
+            )
         print(f"Successfully wrote {len(rows)} pairs to {path}")
 
 
@@ -472,13 +477,17 @@ def _svg(height: float, parts: list[str], label: str) -> str:
     )
 
 
-def _top_chart(rows: list[dict], bait_id, iptm_threshold: float, z_threshold: float) -> str:
+def _top_chart(
+    rows: list[dict], bait_id, iptm_threshold: float, z_threshold: float
+) -> str:
     """Scatter of the 10 proteins with the highest pair_iptm, one dot per protein.
 
     Rows from models with a clash are uninformative and left out.
     """
     best = {}
-    for row in sorted(rows, key=lambda row: _number(row["pair_iptm"]) or 0, reverse=True):
+    for row in sorted(
+        rows, key=lambda row: _number(row["pair_iptm"]) or 0, reverse=True
+    ):
         if not _is_clash(row["has_clash"]):
             best.setdefault(_partner(row, bait_id), row)
     top = list(best.items())[:10]
@@ -501,9 +510,18 @@ def _top_chart(rows: list[dict], bait_id, iptm_threshold: float, z_threshold: fl
                 f'rotate(-35)">{name}</text>'
             )
         else:
-            parts.append(f'<text x="{x:.1f}" y="{baseline + 18}" text-anchor="middle">{name}</text>')
+            parts.append(
+                f'<text x="{x:.1f}" y="{baseline + 18}" text-anchor="middle">{name}</text>'
+            )
         status = _status(row, iptm_threshold, z_threshold)
-        parts.append(_point(x, y_of(_number(row["pair_iptm"]) or 0), status, _tip(row, bait_id, status)))
+        parts.append(
+            _point(
+                x,
+                y_of(_number(row["pair_iptm"]) or 0),
+                status,
+                _tip(row, bait_id, status),
+            )
+        )
 
     return _svg(height, parts, "Top 10 proteins by pair_iptm")
 
@@ -515,7 +533,7 @@ def _scatter_chart(
     bait_id,
     iptm_threshold: float,
     z_threshold: float,
-    x_threshold: float = None,
+    x_threshold: float | None = None,
     show_iptm_threshold: bool = True,
 ) -> str:
     """Scatter of pair_iptm against the x_key column, one dot per row.
@@ -524,11 +542,20 @@ def _scatter_chart(
     area passing both thresholds is shaded. The 10 highest passing dots are labelled by name.
     """
     points = [
-        (_number(row[x_key]), _number(row["pair_iptm"]) or 0, row, _status(row, iptm_threshold, z_threshold))
+        (
+            _number(row[x_key]),
+            _number(row["pair_iptm"]) or 0,
+            row,
+            _status(row, iptm_threshold, z_threshold),
+        )
         for row in rows
         if _number(row[x_key]) is not None
     ]
-    xs = [x for x, _, _, _ in points] + [0] + ([x_threshold] if x_threshold is not None else [])
+    xs = (
+        [x for x, _, _, _ in points]
+        + [0]
+        + ([x_threshold] if x_threshold is not None else [])
+    )
     x_ticks = _ticks(min(xs), max(xs))
     plot_w = CHART_W - MARGIN_L - MARGIN_R
 
@@ -543,8 +570,12 @@ def _scatter_chart(
     for t in x_ticks:
         x = x_of(t)
         if t != x_ticks[0]:
-            parts.append(f'<line class="grid" x1="{x:.1f}" x2="{x:.1f}" y1="{MARGIN_T}" y2="{baseline}"/>')
-        parts.append(f'<text x="{x:.1f}" y="{baseline + 18}" text-anchor="middle">{t:g}</text>')
+            parts.append(
+                f'<line class="grid" x1="{x:.1f}" x2="{x:.1f}" y1="{MARGIN_T}" y2="{baseline}"/>'
+            )
+        parts.append(
+            f'<text x="{x:.1f}" y="{baseline + 18}" text-anchor="middle">{t:g}</text>'
+        )
     parts.append(
         f'<text x="{MARGIN_L + plot_w / 2:.1f}" y="{height - 10}" text-anchor="middle">{x_label}</text>'
     )
@@ -580,24 +611,35 @@ def _scatter_chart(
     return _svg(height, parts, f"pair_iptm against {x_key}")
 
 
-def _table(rows: list[dict], bait_id, statuses: list = None) -> str:
+def _table(rows: list[dict], bait_id, statuses: list | None = None) -> str:
     """HTML table of rows with the bait column removed."""
     first = "Protein" if bait_id else "Pair"
     header = [first] + TABLE_COLUMNS + (["status"] if statuses else [])
-    lines = ["<table><thead><tr>" + "".join(f"<th>{h}</th>" for h in header) + "</tr></thead><tbody>"]
+    lines = [
+        "<table><thead><tr>"
+        + "".join(f"<th>{h}</th>" for h in header)
+        + "</tr></thead><tbody>"
+    ]
     for i, row in enumerate(rows):
         cells = [_partner(row, bait_id)] + [row[c] for c in TABLE_COLUMNS]
         if statuses:
             cells.append(STATUS_LABELS[statuses[i]])
-        lines.append("<tr>" + "".join(f"<td>{html.escape(str(c))}</td>" for c in cells) + "</tr>")
+        lines.append(
+            "<tr>" + "".join(f"<td>{html.escape(str(c))}</td>" for c in cells) + "</tr>"
+        )
     lines.append("</tbody></table>")
     return "".join(lines)
 
 
 def _legend(statuses=tuple(STATUS_LABELS)) -> str:
-    return '<div class="legend">' + "".join(
-        f'<span><span class="key {s}"></span>{STATUS_LABELS[s]}</span>' for s in statuses
-    ) + "</div>"
+    return (
+        '<div class="legend">'
+        + "".join(
+            f'<span><span class="key {s}"></span>{STATUS_LABELS[s]}</span>'
+            for s in statuses
+        )
+        + "</div>"
+    )
 
 
 def write_report(
@@ -649,12 +691,23 @@ def write_report(
         else ""
     )
     potential_table = (
-        _table(potential, bait_id) if potential else '<p class="sub">No pairs passed both thresholds.</p>'
+        _table(potential, bait_id)
+        if potential
+        else '<p class="sub">No pairs passed both thresholds.</p>'
     )
-    clash_table = _table(inconclusive, bait_id) if inconclusive else '<p class="sub">No clashing pairs.</p>'
+    clash_table = (
+        _table(inconclusive, bait_id)
+        if inconclusive
+        else '<p class="sub">No clashing pairs.</p>'
+    )
     potential_pae_chart = (
         _scatter_chart(
-            potential, "pae_min", "pae_min (Å)", bait_id, iptm_threshold, z_threshold,
+            potential,
+            "pae_min",
+            "pae_min (Å)",
+            bait_id,
+            iptm_threshold,
+            z_threshold,
             show_iptm_threshold=False,
         )
         if potential
@@ -782,7 +835,7 @@ def process_pools(
 
         try:
             data_rows.extend(pool_rows(pool_name, pool_summaries, protein_ids))
-        except (KeyError, ValueError, IOError, json.JSONDecodeError) as e:
+        except (OSError, KeyError, ValueError, json.JSONDecodeError) as e:
             print(f"Error processing {pool_name}: {e}")
             continue
 
@@ -804,8 +857,10 @@ def process_pools(
             f.write("\t".join(HEADERS) + "\n")
 
             # Write data rows
-            for row in data_rows:
-                f.write("\t".join(str(row[header]) for header in HEADERS) + "\n")
+            f.writelines(
+                "\t".join(str(row[header]) for header in HEADERS) + "\n"
+                for row in data_rows
+            )
 
         print(f"Successfully wrote {len(data_rows)} pairs to {output_file}")
         print("Results sorted by pair_iptm (highest to lowest)")
@@ -813,7 +868,7 @@ def process_pools(
         write_thresholded_pairs(data_rows, output_file)
         write_report(output_file, bait_id if bait else None)
 
-    except IOError as e:
+    except OSError as e:
         print(f"Error writing output file {output_file}: {e}")
 
 
