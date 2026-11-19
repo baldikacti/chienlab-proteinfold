@@ -39,10 +39,16 @@ process POOL_ANALYSIS {
     path ("analysis_results/*"), emit: analysis_results
 
     script:
+    def args = task.ext.args ?: ''
     def bait_arg = params.pool_mode == 'bait_vs_all' ? "--bait" : ''
     """
     mkdir analysis_results
-    afpool_analysis.py --input-dir folds --pools $pool_tsv --output analysis_results/pool_analysis ${bait_arg}
+    afpool_analysis.py \\
+        --input-dir folds \\
+        --pools ${pool_tsv} \\
+        --output analysis_results/pool_analysis \\
+        ${bait_arg} \\
+        ${args}
     """
 }
 

@@ -52,10 +52,6 @@ HEADERS = [
     "has_clash",
 ]
 
-# Thresholds a pair must exceed to count as a potential interaction
-IPTM_THRESHOLD = 0.5
-Z_THRESHOLD = 1.5
-
 
 def enumerate_chains() -> list[str]:
     """Generate the chain labels A to ZZ that afpool.py assigns to pooled proteins, in order."""
@@ -231,8 +227,8 @@ def pool_rows(pool_name: str, summaries: dict, protein_ids: list[str]) -> list[d
 def write_thresholded_pairs(
     data_rows: list[dict],
     output_file: str,
-    iptm_threshold: float = IPTM_THRESHOLD,
-    z_threshold: float = Z_THRESHOLD,
+    iptm_threshold: float = 0.5,
+    z_threshold: float = 1.5,
 ) -> None:
     """Write potential_pairs.tsv and inconclusive_pairs.tsv next to output_file.
 
@@ -645,8 +641,8 @@ def _legend(statuses=tuple(STATUS_LABELS)) -> str:
 def write_report(
     output_file: str,
     bait_id=None,
-    iptm_threshold: float = IPTM_THRESHOLD,
-    z_threshold: float = Z_THRESHOLD,
+    iptm_threshold: float = 0.5,
+    z_threshold: float = 1.5,
 ) -> None:
     """Write <output>_report.html from the full, potential and inconclusive TSV files.
 
@@ -806,7 +802,12 @@ and lower pae_min (upper left) mean a more confident interaction.</p>
 
 
 def process_pools(
-    input_dir: str, pools_tsv: str, output_file: str, bait: bool = False
+    input_dir: str,
+    pools_tsv: str,
+    output_file: str,
+    bait: bool = False,
+    iptm_threshold: float = 0.5,
+    z_threshold: float = 1.5,
 ) -> None:
     """Explode every pool under input_dir into per-pair scores and write them to a TSV file.
 
@@ -815,6 +816,8 @@ def process_pools(
         pools_tsv: pools.tsv written by afpool.py, used to name the chains of each pool.
         output_file: Output TSV filename, without the .tsv extension.
         bait: Only keep pairs including the bait, taken as the first protein id of the first pool.
+        iptm_threshold: pair_iptm a potential pair must exceed.
+        z_threshold: pair_iptm_z a potential pair must exceed.
     """
     output_file = output_file + ".tsv"
     pools, bait_id = read_pools(pools_tsv)
@@ -865,8 +868,10 @@ def process_pools(
         print(f"Successfully wrote {len(data_rows)} pairs to {output_file}")
         print("Results sorted by pair_iptm (highest to lowest)")
 
-        write_thresholded_pairs(data_rows, output_file)
-        write_report(output_file, bait_id if bait else None)
+        write_thresholded_pairs(data_rows, output_file, iptm_threshold, z_threshold)
+        write_report(
+            output_file, bait_id if bait else None, iptm_threshold, z_threshold
+        )
 
     except OSError as e:
         print(f"Error writing output file {output_file}: {e}")
@@ -903,6 +908,20 @@ def main():
         action="store_true",
         help="Only keep pairs including bait protein (the first protein id of the first pool)",
     )
+    parser.add_argument(
+        "--iptm-threshold",
+        "-t",
+        type=float,
+        default=0.5,
+        help="pair_iptm a pair must exceed to count as a potential interaction (default: %(default)s)",
+    )
+    parser.add_argument(
+        "--z-threshold",
+        "-z",
+        type=float,
+        default=1.5,
+        help="pair_iptm_z a pair must exceed to count as a potential interaction (default: %(default)s)",
+    )
 
     args = parser.parse_args()
 
@@ -920,7 +939,14 @@ def main():
             print(f"Error: Pool {pool_name} has no {pool_name}{SUMMARY_SUFFIX} file")
             sys.exit(1)
 
-    process_pools(args.input_dir, args.pools, args.output, args.bait)
+    process_pools(
+        args.input_dir,
+        args.pools,
+        args.output,
+        args.bait,
+        args.iptm_threshold,
+        args.z_threshold,
+    )
 
 
 if __name__ == "__main__":
