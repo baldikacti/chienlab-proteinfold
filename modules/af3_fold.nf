@@ -20,6 +20,6 @@ process AF3_FOLD {
     def args = task.ext.args ?: ''
     """
     mkdir folds
-    run_alphafold.py --norun_data_pipeline --input_dir input_a3m --output_dir folds --db_dir $af3_db --model_dir $af3_model $args
+    python3 /app/alphafold/run_alphafold.py --norun_data_pipeline --input_dir input_a3m --output_dir folds --db_dir $af3_db --model_dir $af3_model $args
     """
 }

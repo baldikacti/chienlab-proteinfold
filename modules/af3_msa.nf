@@ -14,7 +14,7 @@ process AF3_MSA {
     script:
     def name = json.baseName
     """
-    run_alphafold.py --norun_inference --json_path $json --output_dir msa --db_dir $af3_db
+    python3 /app/alphafold/run_alphafold.py --norun_inference --json_path $json --output_dir msa --db_dir $af3_db
     ln -s \$(find msa -name "*.json" -type f) ${name}_data.json
     """
 }
