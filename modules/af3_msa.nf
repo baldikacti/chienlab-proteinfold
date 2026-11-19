@@ -2,7 +2,7 @@ process AF3_MSA {
     label 'process_high'
     label 'error_ignore'
 
-    container "docker://baldikacti/alphafold3:latest"
+    container "docker://registry.harmonyhpc.io/baldikacti_umass_edu-pub/chienlab_proteinfold/alphafold3:latest"
 
     input:
     path(json)

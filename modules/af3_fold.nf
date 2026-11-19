@@ -5,7 +5,7 @@ process AF3_FOLD {
     label params.use_gpu.toString() == 'true' ? 'process_gpu' : null
     label 'error_ignore'
 
-    container "docker://baldikacti/alphafold3:latest"
+    container "docker://registry.harmonyhpc.io/baldikacti_umass_edu-pub/chienlab_proteinfold/alphafold3:latest"
 
     input:
     path("input_a3m/*")

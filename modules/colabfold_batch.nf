@@ -6,7 +6,7 @@ process COLABFOLD_BATCH {
     label params.use_gpu.toString() == 'true' ? 'process_gpu' : null
     label 'error_ignore'
 
-    container "docker://ghcr.io/sokrypton/colabfold:1.5.5-cuda12.2.2"
+    container "docker://ghcr.io/sokrypton/colabfold:main-cuda13"
 
     input:
     tuple val(accID), path(fasta)

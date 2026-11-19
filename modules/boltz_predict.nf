@@ -5,7 +5,7 @@ process BOLTZ_PREDICT {
     label params.use_gpu.toString() == 'true' ? 'process_gpu' : null
     label 'error_ignore'
 
-    container "docker://baldikacti/boltz:latest"
+    container "docker://registry.harmonyhpc.io/baldikacti_umass_edu-pub/chienlab_proteinfold/boltz:latest"
 
     input:
     path ("input_fasta/*")

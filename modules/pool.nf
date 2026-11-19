@@ -1,7 +1,7 @@
 process POOL {
     label 'process_low'
 
-    container "docker://baldikacti/chienlab_proteinfold_py:latest"
+    container "docker://registry.harmonyhpc.io/baldikacti_umass_edu-pub/chienlab_proteinfold/chienlab_proteinfold_py:latest"
 
     input:
     tuple path(bait_file), path(pool_file), path(init_pools)
@@ -29,7 +29,7 @@ process POOL {
 process POOL_ANALYSIS {
     label 'process_low'
 
-    container "docker://baldikacti/chienlab_proteinfold_py:latest"
+    container "docker://registry.harmonyhpc.io/baldikacti_umass_edu-pub/chienlab_proteinfold/chienlab_proteinfold_py:latest"
 
     input:
     path ("folds/*")

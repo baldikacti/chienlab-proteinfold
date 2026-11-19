@@ -1,7 +1,7 @@
 process PREPARE_COLABFOLD_CACHE {
     label "process_single"
 
-    container "docker://baldikacti/chienlab_proteinfold_ubuntu:noble"
+    container "docker://registry.harmonyhpc.io/baldikacti_umass_edu-pub/chienlab_proteinfold/utils:latest"
 
     output:
     path ("*")         , emit: cache

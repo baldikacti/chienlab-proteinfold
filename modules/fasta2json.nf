@@ -1,7 +1,7 @@
 process FASTA2JSON {
     label 'process_single'
 
-    container "docker://baldikacti/chienlab_proteinfold_py:latest"
+    container "docker://registry.harmonyhpc.io/baldikacti_umass_edu-pub/chienlab_proteinfold/chienlab_proteinfold_py:latest"
 
     input:
     path ("fasta/*")
