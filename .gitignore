@@ -10,3 +10,5 @@ tests/
 .Rproj.user
 *dev/
 .venv/
+.ruff_cache/
+__pycache__/
