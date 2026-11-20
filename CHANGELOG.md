@@ -1,3 +1,23 @@
+# Version v0.11.0
+
+- Adds pool mode (`--pool`) for all prediction modes. Proteins are folded together in pools of up to `--max_pool_depth` amino acids instead of one prediction per pair. Options: `--pool_mode` (`bait_vs_all` or `all_vs_all`), `--max_pool_depth`, `--pool_seed`, `--init_pool`, and `--max_pools`. The proteins in each pool are written to `preprocessing/pools/pools.tsv`.
+
+For the details about the pool mode, please read and cite [Todor et al.](https://link.springer.com/article/10.1038/s44320-026-00189-7)
+
+- Adds pool analysis for `alphafold3` pool runs. Writes per-pair scores (`pool_analysis.tsv`), potential interactions (`potential_pairs.tsv`), clashing pairs (`inconclusive_pairs.tsv`), and an HTML report to `analysis_results/`. Thresholds are set with `--pool_iptm_threshold` (default 0.5) and `--pool_z_threshold` (default 1.5).
+
+- Adds `--use_gpu` to run predictions with or without a GPU.
+
+- Containers are now pulled from the `registry.harmonyhpc.io` Harbor registry, built from [chienlab_proteinfold_containers](https://github.com/baldikacti/chienlab_proteinfold_containers).
+
+- Fixed `-resume` rerunning `AF3_FOLD` and `BOLTZ_PREDICT` jobs. Inference batches are now fixed by input name instead of the order MSAs finish in. The first run after upgrading reruns these jobs once.
+
+- Removed the ColabFold `--top_rank` parameter.
+
+- Added example site configurations for Unity: `examples/example.config` sizes the GPU and partition per job from `--max_pool_depth`, and `examples/example_simple.config` uses one fixed GPU type.
+
+- Example `yaml` files now list every option for their mode with a short description. Added `examples/example_af3_pool.yaml` and `examples/example_boltz_pool.yaml`, and a pooled predictions section to the README.
+
 # Version v0.10.0
 
 - Replaced the per-process `publishDir` directives with a workflow output definition (`publish:` section in `main.nf` plus a top-level `output` block). The output layout is now declared in one place and the modules no longer reference `params.outdir` or `params.mode`.

@@ -96,7 +96,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.2 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.11.0 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --mode colabfold \
@@ -109,7 +109,7 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.9.2 \
 You can provide all the options from a `.yaml` file.
 
 ```bash
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.2 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.11.0 \
       -params-file examples/example_colab.yaml \
       -profile unity \
       -resume
@@ -218,7 +218,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.2 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.11.0 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --model_dir /path/to/model/params \
@@ -231,7 +231,7 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.9.2 \
 **OR**
 
 ```bash
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.2 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.11.0 \
       -params-file examples/example_af3.yaml \
       -profile unity \
       -resume
@@ -337,7 +337,7 @@ export APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_APPTAINER_CACHEDIR=$APPTAINER_CACHEDIR
 export NXF_OPTS="-Xms1G -Xmx8G"
 
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.2 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.11.0 \
       --input /path/to/acclist.tsv \
       --outdir /path/to/results \
       --mode boltz \
@@ -350,7 +350,7 @@ nextflow run baldikacti/chienlab-proteinfold -r v0.9.2 \
 **OR**
 
 ```bash
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.2 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.11.0 \
       -params-file examples/example_boltz.yaml \
       -profile unity \
       -resume
@@ -396,6 +396,8 @@ Example results output directory structure can be found below.
 
 Pool mode screens many proteins at once by folding them together in pools of up to `max_pool_depth` amino acids, instead of one prediction per pair. It works with every `mode`. The per-pair analysis below is currently `alphafold3` only.
 
+Pool mode idea and the `all_v_all` algorithm is taken from [Todor et al.](https://link.springer.com/article/10.1038/s44320-026-00189-7).
+
 1. Create a `tsv` file where `Entry` is a `fasta` file. Set `bait` = 1 for the bait `fasta` and 0 for the `fasta` of proteins to screen (e.g. a proteome).
 
 **acclist_pool.tsv**
@@ -421,7 +423,7 @@ Pool mode screens many proteins at once by folding them together in pools of up 
 - **pool_iptm_threshold**, **pool_z_threshold** = `pair_iptm` and `pair_iptm_z` a pair must exceed to be a potential interaction. [0.5, 1.5]
 
 ```bash
-nextflow run baldikacti/chienlab-proteinfold -r v0.9.2 \
+nextflow run baldikacti/chienlab-proteinfold -r v0.11.0 \
       -params-file examples/example_af3_pool.yaml \
       -profile unity \
       -resume
