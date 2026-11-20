@@ -1,45 +1,57 @@
-# Mandatory
+# ColabFold mode. Options set to null/false are not passed, so colabfold_batch's own default applies.
+# Full option reference: `colabfold_batch --help`
+
+# Mandatory parameters
 mode: 'colabfold'
-input: 'tests/acclist.tsv'
-outdir: 'results/test_colab'
+input: 'examples/acclist_colab.tsv'   # TSV of `Entry` and `bait` columns
+outdir: 'results/test_colab'          # Results directory
 
-# Options for colabfold_batch (null: provides defaults)
-## MSA arguments
-msa_mode: 'mmseqs2_uniref_env'
-pair_mode: null
-pair_strategy: null
-templates: null
+# Pipeline options
+use_gpu: true                         # Run predictions on GPU
+publish_dir_mode: 'copy'              # How results are published: copy|symlink|move
 
-## Prediction arguments
-num_recycle: 3
-recycle_early_stop_tolerance: null
-num_ensemble: null
-num_seeds: null
-random_seed: null
-num_models: null
-model_type: 'alphafold2_multimer_v3'
-use_dropout: null
-max_seq: null
-max_extra_seq: null
-max_msa: null
-disable_cluster_profile: null
+# Pool options
+pool: null                            # Fold proteins together in pools instead of one prediction per pair
+pool_mode: null                       # bait_vs_all|all_vs_all
+max_pool_depth: 4000                  # Maximum amino acids per pool
+pool_seed: null                       # Random seed, for reproducible pools
+init_pool: null                       # all_vs_all only: FASTA of pools to skip
+max_pools: null                       # all_vs_all only: maximum number of pools to sample
 
-## Relaxation arguments
-amber: null
-num_relax: null
-relax_max_iterations: null
-relax_tolerance: null
-relax_max_outer_iterations: null
-use_gpu_relax: null
+# ColabFold options
+## MSA
+host_url: 'http://cfold-db:8888'      # MSA server URL
+msa_mode: 'mmseqs2_uniref_env'        # MSA source: mmseqs2_uniref_env|mmseqs2_uniref|single_sequence
+pair_mode: null                       # Multimer MSA pairing: unpaired_paired|paired|unpaired
+pair_strategy: null                   # How paired MSAs are built: greedy|complete
+templates: null                       # Use structure templates
 
-## Output arguments
-rank: null
-stop_at_score: null
-save_all: null
-save_recycles: null
-save_single_representations: null
-save_pair_representations: null
+## Prediction
+num_recycle: 3                        # Number of recycles
+recycle_early_stop_tolerance: null    # Stop recycling once the structure changes less than this
+num_ensemble: null                    # Number of ensembles per model
+num_seeds: null                       # Number of random seeds per model
+random_seed: null                     # First random seed
+num_models: null                      # Number of models to run (1-5)
+model_type: 'alphafold2_multimer_v3'  # Model weights: auto|alphafold2_ptm|alphafold2_multimer_v1|v2|v3
+use_dropout: null                     # Enable dropout at inference, for more diverse samples
+max_seq: null                         # Number of MSA sequence clusters used
+max_extra_seq: null                   # Number of extra MSA sequences used
+max_msa: null                         # Shorthand for both, as 'max_seq:max_extra_seq'
+disable_cluster_profile: null         # Disable the MSA cluster profile (experimental)
 
-## Advanced arguments
-host_url: 'http://cfold-db:8888'
+## Relaxation
+amber: null                           # Relax structures with Amber
+num_relax: null                       # Number of top-ranked structures to relax
+relax_max_iterations: null            # Maximum Amber iterations
+relax_tolerance: null                 # Amber energy tolerance (kcal/mol)
+relax_max_outer_iterations: null      # Maximum relax-violation loops
+use_gpu_relax: null                   # Run Amber relaxation on GPU
 
+## Output
+rank: null                            # Metric used to rank models: auto|plddt|ptm|iptm|multimer
+stop_at_score: null                   # Stop generating models once this score is reached
+save_all: null                        # Save all raw model outputs
+save_recycles: null                   # Save the prediction from every recycle
+save_single_representations: null     # Save the single representations
+save_pair_representations: null       # Save the pair representations
