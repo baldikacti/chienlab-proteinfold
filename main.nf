@@ -136,6 +136,6 @@ output {
     }
 
     ranked_results {
-        path '.'
+        path "${params.mode}"
     }
 }

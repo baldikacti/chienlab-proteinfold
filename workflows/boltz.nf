@@ -9,6 +9,7 @@ include { POOL; poolInput       } from '../modules/pool'
 include { PREPARE_BOLTZ_CACHE   } from '../modules/prepare_boltz_cache'
 include { BOLTZ_PREDICT         } from '../modules/boltz_predict'
 include { RANK_AF               } from '../modules/rank_af'
+include { batchByInput          } from '../modules/utils'
 
 workflow BOLTZ {
     take:
@@ -33,7 +34,7 @@ workflow BOLTZ {
     boltz_cache = PREPARE_BOLTZ_CACHE.out.cache
     
     BOLTZ_PREDICT (
-        ch_input_raw.collate( inf_batch ),
+        batchByInput(ch_input_raw, ch_input_raw, inf_batch, ''),
         boltz_cache
     )
 

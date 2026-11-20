@@ -9,6 +9,7 @@ include { POOL; POOL_ANALYSIS; poolInput   } from '../modules/pool'
 include { AF3_MSA           } from '../modules/af3_msa'
 include { AF3_FOLD          } from '../modules/af3_fold'
 include { RANK_AF           } from '../modules/rank_af'
+include { batchByInput      } from '../modules/utils'
 
 /*
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -41,11 +42,8 @@ workflow ALPHAFOLD3 {
     )
     msa_json = AF3_MSA.out.af3_json_processed
 
-    ch_msa_json = msa_json
-        .collate( inf_batch )
-
     AF3_FOLD (
-        ch_msa_json,
+        batchByInput(ch_input_raw, msa_json, inf_batch, '_data'),
         database_dir,
         model_dir
     )
