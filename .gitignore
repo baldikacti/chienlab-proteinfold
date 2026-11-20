@@ -9,3 +9,6 @@ tests/
 *.sh
 .Rproj.user
 *dev/
+.venv/
+.ruff_cache/
+__pycache__/

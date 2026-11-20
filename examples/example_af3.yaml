@@ -1,14 +1,30 @@
-# Mandatory paramaters
-mode: 'alphafold3'
-input: '/path/to/input.tsv'
-outdir: '/path/to/results'
-model_dir: '/path/to/model/dir'
-db_dir: '/datasets/bio/alphafold3'
+# Alphafold3 mode. Options set to null/false are not passed, so Alphafold3's own default applies.
 
-# Alphafold3 paramaters
-inf_batch: 20
-max_template_date: '2021-09-30'
-num_recycles: 10
-conformer_max_iterations: null
-save_distogram: null
-save_embeddings: null
+# Mandatory parameters
+mode: 'alphafold3'
+input: '/path/to/input.tsv'           # TSV of `Entry` and `bait` columns
+outdir: '/path/to/results'            # Results directory
+model_dir: '/path/to/model/dir'       # Alphafold3 model parameters directory
+db_dir: '/datasets/bio/alphafold3'    # Alphafold3 databases directory
+
+# Pipeline options
+use_gpu: true                         # Run predictions on GPU
+inf_batch: 20                         # Number of predictions batched into one GPU job
+publish_dir_mode: 'copy'              # How results are published: copy|symlink|move
+
+# Pool options (see examples/example_af3_pool.yaml)
+pool: null                            # Fold proteins together in pools instead of one prediction per pair
+pool_mode: null                       # bait_vs_all|all_vs_all
+max_pool_depth: 4000                  # Maximum amino acids per pool
+pool_seed: null                       # Random seed, for reproducible pools
+init_pool: null                       # all_vs_all only: FASTA of pools to skip
+max_pools: null                       # all_vs_all only: maximum number of pools to sample
+pool_iptm_threshold: null             # Minimum pair_iptm for a potential interaction (default: 0.5)
+pool_z_threshold: null                # Minimum pair_iptm_z for a potential interaction (default: 1.5)
+
+# Alphafold3 options
+max_template_date: '2021-09-30'       # Latest release date of templates used
+num_recycles: 10                      # Number of recycles during inference
+conformer_max_iterations: null        # Maximum iterations of the RDKit ligand conformer search
+save_distogram: null                  # Save the predicted distogram
+save_embeddings: null                 # Save the final trunk single and pair embeddings

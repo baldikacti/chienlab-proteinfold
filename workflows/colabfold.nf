@@ -5,6 +5,7 @@
 */
 
 include { COLABFOLD_BATCH                       } from '../modules/colabfold_batch'
+include { POOL; poolInput                       } from '../modules/pool'
 include { PREPARE_COLABFOLD_CACHE               } from '../modules/prepare_colabfold_cache'
 include { PROCESS_TSV                           } from '../modules/process_tsv'
 include { RANK_AF                               } from '../modules/rank_af'
@@ -20,16 +21,24 @@ workflow COLABFOLD {
     //
     // Create input channel from input file provided through params.input
     //
-    PROCESS_TSV(accession_file, 'colabfold')
-    ch_fasta = PROCESS_TSV.out.processed_tsv_output
-        .flatten()
-        .map { v -> tuple(v.getBaseName(), v) }
+    ch_pools_tsv = channel.empty()
+
+    if (params.pool) {
+        POOL (poolInput(accession_file), 'colabfold')
+        ch_preprocessed = POOL.out.pools.flatten()
+        ch_pools_tsv = POOL.out.pools_tsv
+    } else {
+        PROCESS_TSV (accession_file, 'colabfold')
+        ch_preprocessed = PROCESS_TSV.out.processed_tsv_output.flatten()
+    }
+
+    ch_input_raw = ch_preprocessed.map { v -> tuple(v.getBaseName(), v) }
 
     PREPARE_COLABFOLD_CACHE()
     colabfold_cache = PREPARE_COLABFOLD_CACHE.out.cache
 
     COLABFOLD_BATCH(
-            ch_fasta,
+            ch_input_raw,
             colabfold_cache,
             num_recycle
         )
@@ -40,7 +49,8 @@ workflow COLABFOLD {
         )
 
     emit:
-    preprocessed = PROCESS_TSV.out.processed_tsv_output
+    preprocessed = ch_preprocessed
+    pools_tsv    = ch_pools_tsv
     predictions  = COLABFOLD_BATCH.out.results
     ranked       = RANK_AF.out.tsv
 }

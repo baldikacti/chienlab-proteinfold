@@ -1,7 +1,7 @@
 process PREPARE_BOLTZ_CACHE {
     label "process_single"
 
-    container "docker://baldikacti/boltz:latest"
+    container "docker://registry.harmonyhpc.io/baldikacti_umass_edu-pub/chienlab_proteinfold/boltz:latest"
 
     input:
     val model

@@ -1,8 +1,11 @@
 process AF3_FOLD {
-    label 'gpu'
+    label 'process_medium'
+    // toString() guards against a command-line `--use_gpu false`, which reaches a
+    // process directive as the String 'false' rather than a boolean
+    label params.use_gpu.toString() == 'true' ? 'process_gpu' : null
     label 'error_ignore'
 
-    container "docker://baldikacti/alphafold3:latest"
+    container "docker://registry.harmonyhpc.io/baldikacti_umass_edu-pub/chienlab_proteinfold/alphafold3:latest"
 
     input:
     path("input_a3m/*")
@@ -17,6 +20,6 @@ process AF3_FOLD {
     def args = task.ext.args ?: ''
     """
     mkdir folds
-    run_alphafold.py --norun_data_pipeline --input_dir input_a3m --output_dir folds --db_dir $af3_db --model_dir $af3_model $args
+    python3 /app/alphafold/run_alphafold.py --norun_data_pipeline --input_dir input_a3m --output_dir folds --db_dir $af3_db --model_dir $af3_model $args
     """
 }

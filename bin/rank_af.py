@@ -5,8 +5,8 @@ Reads all *.json files in the current directory and outputs a single TSV file
 Results are sorted by either ranking_score(AF3), ipTM(colabfold), or confidence_score(Boltz) in descending order.
 """
 
-import json
 import glob
+import json
 import os
 import sys
 from pathlib import Path
@@ -110,7 +110,7 @@ def process_json_files(input_dir: str, output_file: str, mode: str):
 
             data_rows.append(row)
 
-        except (json.JSONDecodeError, IOError) as e:
+        except (OSError, json.JSONDecodeError) as e:
             print(f"Error processing {json_file}: {e}")
             continue
 
@@ -142,7 +142,7 @@ def process_json_files(input_dir: str, output_file: str, mode: str):
         print(f"Successfully wrote {len(data_rows)} rows to {output_file}")
         print("Results sorted by ranking_score (highest to lowest)")
 
-    except IOError as e:
+    except OSError as e:
         print(f"Error writing output file {output_file}: {e}")
 
 

@@ -1,0 +1,51 @@
+# Boltz mode, pooled. Options set to null/false are not passed, so Boltz's own default applies.
+# Full option reference: https://github.com/jwohlwend/boltz/blob/main/docs/prediction.md#options
+
+# Mandatory parameters
+mode: 'boltz'
+model: 'boltz2'                       # Boltz model: boltz1|boltz2
+input: '/path/to/input.tsv'           # TSV of `Entry` (FASTA file) and `bait` columns
+outdir: '/path/to/results'            # Results directory
+
+# Pipeline options
+use_gpu: true                         # Run predictions on GPU
+inf_batch: 20                         # Number of predictions batched into one GPU job
+publish_dir_mode: 'copy'              # How results are published: copy|symlink|move
+
+# Pool options
+pool: true                            # Fold proteins together in pools instead of one prediction per pair
+pool_mode: 'bait_vs_all'              # bait_vs_all: bait in every pool; all_vs_all: screen proteins against each other
+max_pool_depth: 4000                  # Maximum amino acids per pool. Larger pools need more GPU memory
+pool_seed: null                       # Random seed, for reproducible pools
+init_pool: null                       # all_vs_all only: FASTA of pools to skip
+max_pools: null                       # all_vs_all only: maximum number of pools to sample
+
+# Boltz options
+## MSA
+use_msa_server: true                  # Generate MSAs with an MMseqs2 server
+msa_server_url: 'http://cfold-db:8888' # MSA server URL
+msa_pairing_strategy: 'greedy'        # How MSAs of different chains are paired: greedy|complete
+max_msa_seqs: 8192                    # Maximum MSA sequences used
+subsample_msa: true                   # Subsample the MSA
+num_subsampled_msa: 1024              # Number of MSA sequences kept when subsampling
+
+## Prediction
+recycling_steps: 10                   # Number of recycling steps
+sampling_steps: 200                   # Number of diffusion sampling steps
+diffusion_samples: 25                 # Number of structures sampled per input
+step_scale: null                      # Diffusion step size; lower gives more diverse samples
+seed: null                            # Random seed
+use_potentials: false                 # Steer sampling with inference-time potentials
+method: null                          # boltz2 only: experimental method to condition on (e.g. 'x-ray diffraction')
+no_kernels: true                      # Disable cuEquivariance kernels (needed on older GPUs)
+
+## Affinity (boltz2 only)
+affinity_mw_correction: null          # Apply the molecular weight correction to the affinity
+sampling_steps_affinity: 200          # Number of sampling steps for affinity prediction
+diffusion_samples_affinity: 5         # Number of diffusion samples for affinity prediction
+
+## Output
+output_format: 'mmcif'                # Structure format: pdb|mmcif
+write_full_pae: true                  # Save the full PAE matrix
+write_full_pde: false                 # Save the full PDE matrix
+write_embeddings: false               # Save the single (s) and pair (z) embeddings

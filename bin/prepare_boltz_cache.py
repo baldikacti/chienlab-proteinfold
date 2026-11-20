@@ -7,9 +7,9 @@ Adapted by Berent Aldikacti
 """
 
 import argparse
-from pathlib import Path
-import urllib.request
 import tarfile
+import urllib.request
+from pathlib import Path
 
 CCD_URL = "https://huggingface.co/boltz-community/boltz-1/resolve/main/ccd.pkl"
 MOL_URL = "https://huggingface.co/boltz-community/boltz-2/resolve/main/mols.tar"
@@ -44,7 +44,7 @@ def download_boltz1(cache: Path) -> None:
     ccd = cache / "ccd.pkl"
     if not ccd.exists():
         print(f"Downloading the CCD dictionary to {ccd}")
-        urllib.request.urlretrieve(CCD_URL, str(ccd))  # noqa: S310
+        urllib.request.urlretrieve(CCD_URL, str(ccd))
         print("CCD dictionary download completed")
     else:
         print("CCD dictionary already exists, skipping")
@@ -55,10 +55,10 @@ def download_boltz1(cache: Path) -> None:
         print(f"Downloading the Boltz1 model weights to {model}")
         for i, url in enumerate(BOLTZ1_URL_WITH_FALLBACK):
             try:
-                urllib.request.urlretrieve(url, str(model))  # noqa: S310
+                urllib.request.urlretrieve(url, str(model))
                 print("Boltz1 model weights download completed")
                 break
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 if i == len(BOLTZ1_URL_WITH_FALLBACK) - 1:
                     msg = f"Failed to download Boltz1 model from all URLs. Last error: {e}"
                     raise RuntimeError(msg) from e
@@ -86,7 +86,7 @@ def download_boltz2(cache: Path) -> None:
     tar_mols = cache / "mols.tar"
     if not tar_mols.exists():
         print(f"Downloading the molecular data to {tar_mols} (this may take a while)")
-        urllib.request.urlretrieve(MOL_URL, str(tar_mols))  # noqa: S310
+        urllib.request.urlretrieve(MOL_URL, str(tar_mols))
         print("Molecular data download completed")
     else:
         print("Molecular data tar already exists, skipping download")
@@ -94,7 +94,7 @@ def download_boltz2(cache: Path) -> None:
     if not mols.exists():
         print(f"Extracting the molecular data to {mols} (this may take a while)")
         with tarfile.open(str(tar_mols), "r") as tar:
-            tar.extractall(cache)  # noqa: S202
+            tar.extractall(cache)
         print("Molecular data extraction completed")
     else:
         print("Molecular data already extracted, skipping")
@@ -105,10 +105,10 @@ def download_boltz2(cache: Path) -> None:
         print(f"Downloading the Boltz2 model weights to {model}")
         for i, url in enumerate(BOLTZ2_URL_WITH_FALLBACK):
             try:
-                urllib.request.urlretrieve(url, str(model))  # noqa: S310
+                urllib.request.urlretrieve(url, str(model))
                 print("Boltz2 model weights download completed")
                 break
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 if i == len(BOLTZ2_URL_WITH_FALLBACK) - 1:
                     msg = f"Failed to download Boltz2 model from all URLs. Last error: {e}"
                     raise RuntimeError(msg) from e
@@ -123,10 +123,10 @@ def download_boltz2(cache: Path) -> None:
         print(f"Downloading the Boltz2 affinity weights to {affinity_model}")
         for i, url in enumerate(BOLTZ2_AFFINITY_URL_WITH_FALLBACK):
             try:
-                urllib.request.urlretrieve(url, str(affinity_model))  # noqa: S310
+                urllib.request.urlretrieve(url, str(affinity_model))
                 print("Boltz2 affinity weights download completed")
                 break
-            except Exception as e:  # noqa: BLE001
+            except Exception as e:
                 if i == len(BOLTZ2_AFFINITY_URL_WITH_FALLBACK) - 1:
                     msg = f"Failed to download Boltz2 affinity model from all URLs. Last error: {e}"
                     raise RuntimeError(msg) from e

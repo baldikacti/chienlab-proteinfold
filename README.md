@@ -15,6 +15,7 @@
    * [Usage: Boltz](#usage-boltz)
      + [Results](#results-2)
          - [Directory Structure](#directory-structure-2)
+   * [Usage: Pooled predictions](#usage-pooled-predictions)
    * [Pipeline Summary](#pipeline-summary)
 
 <!-- TOC end -->
@@ -389,6 +390,62 @@ Example results output directory structure can be found below.
 │   ├── # Execution summaries (html, txt)
 │   ...
 └── boltz_ranked_results.tsv
+```
+
+## Usage: Pooled predictions
+
+Pool mode screens many proteins at once by folding them together in pools of up to `max_pool_depth` amino acids, instead of one prediction per pair. It works with every `mode`. The per-pair analysis below is currently `alphafold3` only.
+
+1. Create a `tsv` file where `Entry` is a `fasta` file. Set `bait` = 1 for the bait `fasta` and 0 for the `fasta` of proteins to screen (e.g. a proteome).
+
+**acclist_pool.tsv**
+| Entry             | bait  |
+| :---------------: | :--:  |
+| ref/bait.fasta    | 1     |
+| ref/proteome.fasta| 0     |
+
+2. Set the pool options (see `examples/example_af3_pool.yaml` or `examples/example_boltz_pool.yaml`).
+
+**Pool arguments:**
+
+- **pool** = Enables pool mode. [`true`]
+
+- **pool_mode** = `bait_vs_all` puts the bait in every pool; `all_vs_all` pools the `bait` = 0 proteins against each other. [`bait_vs_all`]
+
+- **max_pool_depth** = Maximum amino acids per pool. Larger pools need more GPU memory. [4000]
+
+- **pool_seed** = Random seed for reproducible pools. [`null`]
+
+- **init_pool**, **max_pools** = `all_vs_all` only: a `fasta` of pools to skip, and the maximum number of pools to sample. [`null`]
+
+- **pool_iptm_threshold**, **pool_z_threshold** = `pair_iptm` and `pair_iptm_z` a pair must exceed to be a potential interaction. [0.5, 1.5]
+
+```bash
+nextflow run baldikacti/chienlab-proteinfold -r v0.9.2 \
+      -params-file examples/example_af3_pool.yaml \
+      -profile unity \
+      -resume
+```
+
+### Results
+
+- *preprocessing/pools/*: Pool input files, and `pools.tsv` listing the proteins in each pool.
+
+- *analysis_results/pool_analysis.tsv*: Scores for every protein pair in every pool, sorted by `pair_iptm`.
+
+- *analysis_results/potential_pairs.tsv*: Pairs that pass both thresholds, without a clash.
+
+- *analysis_results/inconclusive_pairs.tsv*: Clashing pairs that never passed in another pool.
+
+- *analysis_results/pool_analysis_report.html*: Summary report with plots and tables.
+
+```bash
+<outdir>
+└── alphafold3
+    ├── preprocessing/pools # Pool input files and pools.tsv
+    ├── msa
+    ├── folds
+    └── analysis_results
 ```
 
 ## Pipeline Summary
